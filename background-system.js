@@ -62,8 +62,8 @@ class BackgroundSystem {
         if (data && data.length > 0) {
             const N = data.length - 1;
             for (const sq of this.grid) {
-                const cx = sq.x / this.canvas.width;       // 0..1
-                const cy = sq.y / this.canvas.height;      // 0..1
+                const cx = sq.x / this.canvas.width;
+                const cy = sq.y / this.canvas.height;
                 const fIdx = Math.floor((cx * 0.7 + (1 - cy) * 0.3) * N);
                 const freq = data[fIdx] / 255;
                 sq.target = Math.pow(freq, 1.5);

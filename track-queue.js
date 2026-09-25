@@ -38,8 +38,6 @@ class TrackQueue {
     this.plates = [];
 
     const playlist = this.audioEngine.playlist;
-
-    // ── Пустой плейлист — рисуем заглушку и выходим ──
     if (playlist.length === 0) {
         this.container.innerHTML = `
             <div class="queue-empty">
@@ -50,16 +48,22 @@ class TrackQueue {
         return;
     }
 
-    // ── Отрисовка плиток ──
     playlist.forEach((track, idx) => {
         const plate = document.createElement('div');
         plate.className = 'queue-plate';
         plate.dataset.index = idx;
+        const coverUrl = this.audioEngine.ensureCoverUrl(track);
+        const coverStyle = track.coverUrl
+            ? `style="background-image:url('${track.coverUrl}')"`
+            : '';
+        const coverClass = track.coverUrl ? 'queue-plate-cover has-image' : 'queue-plate-cover';
+
         plate.innerHTML = `
             <div class="queue-plate-num">${(idx + 1).toString().padStart(2, '0')}</div>
+            <div class="${coverClass}" ${coverStyle}><span>♪</span></div>
             <div class="queue-plate-info">
                 <div class="queue-plate-title">${this.escapeHtml(track.title)}</div>
-                <div class="queue-plate-artist">${this.escapeHtml(track.artist)}</div>
+                    <div class="queue-plate-artist">${this.escapeHtml(track.artist)}</div>
             </div>
         `;
         plate.addEventListener('click', () => {
@@ -72,15 +76,11 @@ class TrackQueue {
         this.plates.push(plate);
     });
 
-    // ── После добавления в DOM — измеряем ширину и раскладываем ──
     requestAnimationFrame(() => {
         this.recalcStep();
         this.update();
     });
-
-
-        requestAnimationFrame(() => this.update());
-    }
+}
 
     update() {
         if (!this.plates.length) return;

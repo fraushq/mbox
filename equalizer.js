@@ -110,6 +110,7 @@ class EqualizerUI {
     }
 
     markAsCustom() {
+        if (!this.select) return;
         if (this.select.value !== 'custom' && !this.select.value.startsWith('custom:')) {
             let customOpt = this.select.querySelector('option[value="custom"]');
             if (!customOpt) {

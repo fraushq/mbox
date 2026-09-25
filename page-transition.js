@@ -19,21 +19,22 @@ class PageTransition {
     async play(switchCallback) {
         if (this.busy) return;
         this.busy = true;
-        this.overlay.classList.add('active');
-        void this.overlay.offsetWidth;
-        this.overlay.classList.add('covering');
-        await this.wait(800);
-        if (typeof switchCallback === 'function') switchCallback();
-        await this.wait(100);
-        this.overlay.classList.remove('covering');
-        this.overlay.classList.add('revealing');
-        await this.wait(900);
-        this.overlay.classList.remove('revealing');
-        void this.overlay.offsetWidth;
-        this.overlay.classList.remove('active');
-
-        this.busy = false;
-    }
-
-    wait(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+        try {
+            this.overlay.classList.add('active');
+            void this.overlay.offsetWidth;
+            this.overlay.classList.add('covering');
+            await this.wait(800);
+            if (typeof switchCallback === 'function') switchCallback();
+            await this.wait(100);
+            this.overlay.classList.remove('covering');
+            this.overlay.classList.add('revealing');
+            await this.wait(900);
+            this.overlay.classList.remove('revealing');
+            void this.overlay.offsetWidth;
+            this.overlay.classList.remove('active');
+        } finally {
+            this.busy = false;
+        }   
+    }       
+        wait(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 }

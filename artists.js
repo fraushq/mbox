@@ -1,14 +1,6 @@
-// ═══════════════════════════════════════════════════════════
-// mbox — база артистов и регионов
-// Формат: 'имя артиста в нижнем регистре': индекс региона
-// 0: Северная Америка | 1: Южная Америка | 2: Европа
-// 3: Африка           | 4: Азия           | 5: Австралия
-// 6: Антарктида
-// ═══════════════════════════════════════════════════════════
-
 window.MBOX_ARTIST_REGIONS = {
 
-    // ─── ЕВРОПА (2) ───
+    //ЕВРОПА (2)
     'daft punk': 2,
     'avicii': 2,
     'adele': 2,
@@ -32,8 +24,18 @@ window.MBOX_ARTIST_REGIONS = {
     'bjork': 2,
     'sigur ros': 2,
     'aphex twin': 2,
+    'Toxi$': 2,
+    'Баста': 2,
+    'Oxxxymiron': 2,
+    'GONE.Fludd': 2,
+    'Тима Белорусских': 2,
+    'Pharaoh': 2,
+    'Дора': 2,
+    'Face': 2,
+'
+    
 
-    // ─── СЕВЕРНАЯ АМЕРИКА (0) ───
+    //СЕВЕРНАЯ АМЕРИКА (0)
     'eminem': 0,
     'taylor swift': 0,
     'beyonce': 0,
@@ -56,7 +58,7 @@ window.MBOX_ARTIST_REGIONS = {
     'lana del rey': 0,
     'bbno$': 0,
 
-    // ─── АЗИЯ (4) ───
+    //АЗИЯ (4)
     'bts': 4,
     'blackpink': 4,
     'iu': 4,
@@ -68,21 +70,21 @@ window.MBOX_ARTIST_REGIONS = {
     'utada hikaru': 4,
     'kenshi yonezu': 4,
 
-    // ─── АФРИКА (3) ───
+    //АФРИКА (3)
     'fela kuti': 3,
     "youssou n'dour": 3,
     'salif keita': 3,
     'angélique kidjo': 3,
     'tinariwen': 3,
 
-    // ─── ЮЖНАЯ АМЕРИКА (1) ───
+    //ЮЖНАЯ АМЕРИКА (1)
     'shakira': 1,
     'carlos santana': 1,
     'caetano veloso': 1,
     'juanes': 1,
     'bajofondo': 1,
 
-    // ─── АВСТРАЛИЯ (5) ───
+    //АВСТРАЛИЯ (5)
     'tame impala': 5,
     'ac/dc': 5,
     'sia': 5,
@@ -91,6 +93,6 @@ window.MBOX_ARTIST_REGIONS = {
     'gotye': 5,
     'courtney barnett': 5,
 
-    // ─── АНТАРКТИДА (6) — шутка, но работает ───
-    // 'vangelis': 6,
+    //АНТАРКТИДА (6)
+
 };

@@ -53,7 +53,8 @@ class TrackStorage {
                     duration:    track.duration || 0,
                     fileName:    track.fileName || '',
                     createdAt:   track.createdAt || Date.now(),
-                    blob:        track.blob   // File/Blob
+                    blob:        track.blob,
+                    coverBlob:   track.coverBlob || null
                 };
                 const req = store.put(record);
                 req.onsuccess = () => resolve(true);
@@ -78,6 +79,7 @@ class TrackStorage {
                     rec.title    = track.title    || rec.title;
                     rec.artist   = track.artist   || rec.artist;
                     rec.duration = track.duration || rec.duration;
+                    if (track.coverBlob !== undefined) rec.coverBlob = track.coverBlob;
                     const putReq = store.put(rec);
                     putReq.onsuccess = () => resolve(true);
                     putReq.onerror = () => resolve(false);

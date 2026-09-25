@@ -68,6 +68,7 @@ class GlobeView {
         this.DPR = Math.min(window.devicePixelRatio || 1, 2);
         this.W = rect.width;
         this.H = rect.height;
+        this.hintEl?.classList.remove('hide');
         this.canvas.width = Math.round(this.W * this.DPR);
         this.canvas.height = Math.round(this.H * this.DPR);
         this.canvas.style.width = this.W + 'px';
@@ -268,6 +269,12 @@ class GlobeView {
 
     start() {
         if (this.disabled || this.animId) return;
+
+    clearTimeout(this._hintTimer);
+    this._hintTimer = setTimeout(() => {
+        this.hintEl?.classList.add('hide');
+    }, 6000);
+
         this.lastT = performance.now();
         const loop = (now) => {
             this.animId = requestAnimationFrame(loop);

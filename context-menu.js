@@ -26,6 +26,7 @@ class ContextMenu {
         });
 
         this.createRegionItem();
+        this.createSelectItem();
     }
 
     createRegionItem() {
@@ -71,6 +72,31 @@ class ContextMenu {
         this.menu.appendChild(regionItem);
         this.regionItem = regionItem;
         this.regionSubmenu = submenu;
+    }
+
+    createSelectItem() {
+        const divider = document.createElement('div');
+        divider.className = 'context-menu-divider';
+
+        const item = document.createElement('div');
+        item.className = 'context-menu-item';
+        item.dataset.action = 'select-mode';
+        item.innerHTML = `
+            <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-8.29 13.29-3.29-3.29 1.41-1.42 1.88 1.88 4.88-4.88 1.42 1.41-6.3 6.3z"/></svg>
+            <span>Выбрать несколько</span>
+        `;
+        item.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (this.currentTrackIndex === null) { this.hide(); return; }
+            const track = this.audioEngine.playlist[this.currentTrackIndex];
+            if (track && window.fileUploadSystem) {
+                window.fileUploadSystem.startSelectionFrom(track.id);
+            }
+            this.hide();
+        });
+
+        this.menu.appendChild(divider);
+        this.menu.appendChild(item);
     }
 
     show(x, y, trackIndex) {
@@ -149,6 +175,10 @@ class ContextMenu {
         if (!track) return;
         track.region = regionIdx;
 
+        if (window.trackStorage) {
+            window.trackStorage.updateMetadata(track).catch(() => {});
+        }
+
         const label = regionIdx < 0
             ? 'Не указан'
             : (typeof REGION_NAMES !== 'undefined' ? REGION_NAMES[regionIdx] : regionIdx);
@@ -182,6 +212,10 @@ class ContextMenu {
             if (confirm(`Удалить трек "${track.title}"?`)) {
                 this.audioEngine.removeTrack(this.currentTrackIndex);
                 if (window.fileUploadSystem) window.fileUploadSystem.updateTrackListUI();
+            }
+        } else if (action === 'lyrics') {
+            if (typeof window.openLyrics === 'function') {
+                window.openLyrics(this.currentTrackIndex);
             }
         }
     }

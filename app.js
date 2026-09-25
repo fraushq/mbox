@@ -2,6 +2,10 @@ let audioEngine, fileUploadSystem, visualizer, backgroundSystem,
     playlistManager, contextMenu, registrationSystem;
 let isEcoMode = false;
 let lastProgressUpdate = 0;
+let lyricsLoadToken = 0;
+let coverBgEnabled = false;
+let coverAccentEnabled = false;
+let currentCoverPalette = null;
 
 function ensureGlobe() {
     if (window.globeView) return window.globeView;
@@ -30,20 +34,38 @@ async function init() {
         visualizer.stop();
     };
 
-    // Глобальные ссылки для inline-обработчиков
+    audioEngine.onTrackChange = (track) => {
+        refreshCoverAppearance(track);
+        const modal = document.getElementById('lyricsModal');
+        if (modal && modal.classList.contains('active')) {
+            openLyrics(audioEngine.currentIndex, { isRefresh: true });
+        }
+    };
+
+    let _coverRerenderTimer = null;
+    audioEngine.onCoverLoaded = (track) => {
+        if (audioEngine.playlist[audioEngine.currentIndex] === track) {
+            audioEngine._updatePlayerCover(track);
+            refreshCoverAppearance(track);
+        }
+
+        clearTimeout(_coverRerenderTimer);
+        _coverRerenderTimer = setTimeout(() => {
+            if (fileUploadSystem) fileUploadSystem.updateTrackListUI();
+            if (window.trackQueue) window.trackQueue.render();
+        }, 120);
+    };
+
     window.audioEngine       = audioEngine;
     window.playlistManager   = playlistManager;
     window.fileUploadSystem  = fileUploadSystem;
     window.contextMenu       = contextMenu;
-
     window.matchMedia('(prefers-reduced-motion: reduce)')
         .addEventListener('change', respectReducedMotion);
-
     window.equalizerUI = new EqualizerUI(audioEngine);
     loadEcoState();
     const savedPreset = localStorage.getItem('colorPreset') || 'yellow';
     applyColorPreset(savedPreset);
-
     window.backgroundManager = new BackgroundManager(audioEngine);
 
     renderColorSwatches();
@@ -55,19 +77,23 @@ async function init() {
     loadSettings();
     setupEvents();
     updateCacheSize();
+    window.tipPanel = new TipPanel();
+    audioEngine.updateVolumeUI();
 
+    
     backgroundSystem.start();
-    fileUploadSystem.updateTrackListUI();
-
+    let restored = 0;
     try {
-        const restored = await audioEngine.restoreFromStorage();
-        if (restored > 0) {
-            fileUploadSystem.updateTrackListUI();
-            if (window.trackQueue) window.trackQueue.render();
-            showNotification(`Загружено треков из хранилища: ${restored}`);
-        }
+        restored = await audioEngine.restoreFromStorage();
     } catch (e) {
         console.warn('Восстановление треков не удалось:', e);
+    }
+
+    fileUploadSystem.updateTrackListUI();
+    if (window.trackQueue) window.trackQueue.render();
+
+    if (restored > 0) {
+        showNotification(`Загружено треков из хранилища: ${restored}`);
     }
 
     function updateLoop(timestamp) {
@@ -270,8 +296,6 @@ function playPlaylist(playlist) {
         return;
     }
 
-    // Треки плейлиста — в начало очереди, остальная библиотека — следом.
-    // Ничего не теряется, плейлист играет первым, после него продолжается библиотека.
     const playlistIds = new Set(playlistTracks.map(t => t.id));
     const rest = library.filter(t => !playlistIds.has(t.id));
 
@@ -359,6 +383,396 @@ function playFromModal(index) {
 }
 window.playFromModal = playFromModal;
 
+function cleanTrackQuery(str) {
+    return String(str || '')
+        .replace(/\(feat\.?[^)]*\)/gi, '')
+        .replace(/\[feat\.?[^\]]*\]/gi, '')
+        .replace(/\(ft\.?[^)]*\)/gi, '')
+        .replace(/\[ft\.?[^\]]*\]/gi, '')
+        .replace(/\((?:official|lyric|audio|video|clip|remix|radio|edit)[^)]*\)/gi, '')
+        .replace(/\[(?:official|lyric|audio|video|clip|remix|radio|edit)[^\]]*\]/gi, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function primaryArtist(artist) {
+    return String(artist || '').split(',')[0].trim();
+}
+
+function geniusSearchUrl(artist, title) {
+    const q = encodeURIComponent(`${cleanTrackQuery(artist)} ${cleanTrackQuery(title)}`.trim());
+    return `https://genius.com/search?q=${q}`;
+}
+
+async function fetchLyrics(artist, name) {
+    const q = encodeURIComponent(name);
+    const url = `https://lrclib.net/api/search?q=${q}`;
+
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 8000);
+
+    let results;
+    try {
+        const r = await fetch(url, {
+            signal: ctrl.signal,
+            headers: { 'Accept': 'application/json' }
+        });
+        clearTimeout(t);
+        if (!r.ok) return null;
+        results = await r.json();
+    } catch (e) {
+        clearTimeout(t);
+        console.warn('lrclib search failed:', e.message);
+        return null;
+    }
+
+    if (!Array.isArray(results) || results.length === 0) return null;
+    const artistL = artist.toLowerCase().trim();
+    const nameL   = name.toLowerCase().trim();
+    const norm = (s) => String(s || '').toLowerCase().replace(/[^a-zа-я0-9]/gi, '');
+    const artistN = norm(artistL);
+    const nameN   = norm(nameL);
+    const scored = results
+        .filter(r => r.plainLyrics || r.syncedLyrics)
+        .map(r => {
+            const rArtist = norm(r.artistName);
+            const rTrack  = norm(r.trackName);
+            let score = 0;
+            if (r.plainLyrics) score += 2;
+            if (rArtist.includes(artistN) || artistN.includes(rArtist)) score += 3;
+            if (rTrack.includes(nameN) || nameN.includes(rTrack)) score += 3;
+            return { r, score };
+        })
+        .sort((a, b) => b.score - a.score);
+    if (scored.length > 0) return scored[0].r;
+    return results.find(r => r.syncedLyrics || r.plainLyrics) || results[0];
+}
+
+// Лирика
+
+const LyricsView = {
+    scroller: null,
+    linesEl: null,
+    lineEls: [],
+    raf: null,
+    bound: false,
+    _scrollBound: false,
+    _controlsSnapshot: null,
+
+    init() {
+        this.scroller = document.getElementById('lyricsScroller');
+        this.linesEl  = document.getElementById('lyricsLines');
+        if (!this.scroller || !this.linesEl) return;
+
+        this._onScroll = this._onScroll.bind(this);
+        this._onResize = this._onResize.bind(this);
+        window.addEventListener('resize', this._onResize);
+        this.bound = true;
+    },
+
+    reset() {
+        const stage = document.getElementById('lyricsStage');
+        if (stage) stage.classList.remove('revealed');
+        if (this.linesEl) this.linesEl.innerHTML = '';
+        this.lineEls = [];
+        if (this.scroller) this.scroller.scrollTop = 0;
+        this.restorePlayerControls();
+    },
+
+    clearLines() {
+        if (this.linesEl) this.linesEl.innerHTML = '';
+        this.lineEls = [];
+        if (this.scroller) this.scroller.scrollTop = 0;
+        const src = document.getElementById('lyricsSource');
+        if (src) src.innerHTML = '';
+    },
+
+    setCover(track) {
+        const coverEl = document.getElementById('lyricsCover');
+        if (!coverEl) return;
+        coverEl.innerHTML = '';
+        const url = window.audioEngine?.ensureCoverUrl(track);
+        if (url) {
+            const img = document.createElement('img');
+            img.src = url;
+            img.alt = '';
+            coverEl.appendChild(img);
+        } else {
+            const ph = document.createElement('div');
+            ph.className = 'lyrics-cover-ph';
+            ph.textContent = '♪';
+            coverEl.appendChild(ph);
+        }
+    },
+
+    setMeta(track) {
+        const t = document.getElementById('lyricsMetaTitle');
+        const a = document.getElementById('lyricsMetaArtist');
+        if (t) t.textContent = track.title;
+        if (a) a.textContent = track.artist;
+    },
+    stealPlayerControls() {
+        if (window.innerWidth < 720) return;
+        if (this._controlsSnapshot) return;
+
+        const buttonsSlot = document.getElementById('lyricsPlayerButtons');
+        const volumeSlot  = document.getElementById('lyricsPlayerVolume');
+        if (!buttonsSlot || !volumeSlot) return;
+
+        const moves = [];
+        ['prevBtn', 'mainPlayBtn', 'nextBtn'].forEach((id) => {
+            const el = document.getElementById(id);
+            if (!el || !el.parentElement) return;
+
+            const marker = document.createComment('lyrics-return-' + id);
+            el.parentElement.insertBefore(marker, el);
+            moves.push({ el, marker });
+
+            buttonsSlot.appendChild(el);
+        });
+
+        const vol = document.querySelector('.main-content > .volume-control');
+        if (vol && vol.parentElement) {
+            const marker = document.createComment('lyrics-return-volume');
+            vol.parentElement.insertBefore(marker, vol);
+            moves.push({ el: vol, marker });
+
+            volumeSlot.appendChild(vol);
+        }
+
+        this._controlsSnapshot = moves;
+    },
+
+    restorePlayerControls() {
+        if (!this._controlsSnapshot) return;
+        for (let i = this._controlsSnapshot.length - 1; i >= 0; i--) {
+            const m = this._controlsSnapshot[i];
+            try {
+                if (m.marker && m.marker.parentElement) {
+                    m.marker.parentElement.insertBefore(m.el, m.marker);
+                    m.marker.remove();
+                }
+            } catch (e) {
+                console.warn('restore player control failed:', e);
+            }
+        }
+        this._controlsSnapshot = null;
+    },
+
+    setStatus(html) {
+        const s = document.getElementById('lyricsStatus');
+        if (s) s.innerHTML = html;
+    },
+
+    showLoading() {
+        this.setStatus(`
+            <div class="lyrics-spinner"></div>
+            <div class="lyrics-status-text">Поиск текста…</div>
+        `);
+    },
+
+    showNotFound(title, text, track) {
+        const stage = document.getElementById('lyricsStage');
+        if (stage) stage.classList.remove('revealed');
+
+        const geniusUrl = track ? geniusSearchUrl(track.artist, track.title) : null;
+        this.setStatus(`
+            <div class="lyrics-notfound-title">${title}</div>
+            <div class="lyrics-notfound-text">${text}</div>
+            ${geniusUrl ? `
+                <a class="lyrics-action-btn" href="${geniusUrl}" target="_blank" rel="noopener">
+                    <svg viewBox="0 0 24 24"><path d="M14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7zM19 19H5V5h7V3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7h-2v7z"/></svg>
+                    Найти на Genius
+                </a>` : ''}
+        `);
+    },
+
+    renderLyrics(text, sourceUrl) {
+        if (!this.linesEl) return;
+        const raw = String(text).split(/\r?\n/);
+        this.linesEl.innerHTML = '';
+        this.lineEls = [];
+
+        raw.forEach(line => {
+            const el = document.createElement('div');
+            el.className = 'lyrics-line';
+            el.textContent = line.length === 0 ? '\u00A0' : line;
+            this.linesEl.appendChild(el);
+            this.lineEls.push(el);
+        });
+
+        const srcEl = document.getElementById('lyricsSource');
+        if (srcEl) {
+            srcEl.innerHTML = sourceUrl
+                ? `Источник: <a href="${sourceUrl}" target="_blank" rel="noopener">LRCLIB</a>`
+                : '';
+        }
+    },
+
+    reveal() {
+        const stage = document.getElementById('lyricsStage');
+        if (!stage) return;
+        this._updatePadding();
+        if (this.scroller) this.scroller.scrollTop = 0;
+        this.stealPlayerControls();
+        stage.classList.add('revealed');
+        if (this.scroller && !this._scrollBound) {
+            this.scroller.addEventListener('scroll', this._onScroll, { passive: true });
+            this._scrollBound = true;
+        }
+        requestAnimationFrame(() => this._updateFocus());
+    },
+
+    _updatePadding() {
+        if (!this.scroller || !this.linesEl) return;
+        const h = this.scroller.clientHeight || 480;
+        const pad = Math.max(60, h / 2 - 30);
+        this.linesEl.style.paddingTop    = pad + 'px';
+        this.linesEl.style.paddingBottom = pad + 'px';
+    },
+
+    _onScroll() {
+        if (this.raf) return;
+        this.raf = requestAnimationFrame(() => {
+            this.raf = null;
+            this._updateFocus();
+        });
+    },
+
+    _onResize() {
+        if (!document.getElementById('lyricsStage')?.classList.contains('revealed')) return;
+        this._updatePadding();
+        this._updateFocus();
+    },
+
+    _updateFocus() {
+        if (!this.scroller || !this.lineEls.length) return;
+
+        const scRect = this.scroller.getBoundingClientRect();
+        const centerY = scRect.top + scRect.height / 2;
+        const maxDist = scRect.height / 2;
+
+        for (const line of this.lineEls) {
+            const r = line.getBoundingClientRect();
+            const lc = r.top + r.height / 2;
+            const dist = Math.abs(lc - centerY);
+            const p = Math.min(dist / maxDist, 1);
+            const scale   = 1 - p * 0.30;
+            const opacity = 1 - p * 0.82;
+            const xShift  = p * 12;
+            const blur    = p * 0.6;
+
+            line.style.transform = `translateX(${xShift.toFixed(1)}px) scale(${scale.toFixed(3)})`;
+            line.style.opacity   = opacity.toFixed(3);
+            line.style.filter    = blur > 0.1 ? `blur(${blur.toFixed(2)}px)` : '';
+        }
+    }
+};
+
+window.LyricsView = LyricsView;
+
+async function openLyrics(index, opts = {}) {
+    const isRefresh = !!opts.isRefresh;
+    const track = audioEngine.playlist[index];
+    if (!track) return;
+    if (!LyricsView.bound) LyricsView.init();
+    const glowEl = document.getElementById('lyricsGlow');
+    const modal  = document.getElementById('lyricsModal');
+
+    if (!isRefresh) {
+        LyricsView.restorePlayerControls();
+        LyricsView.reset();
+        modal.classList.add('active');
+        glowEl?.classList.add('active');
+    } else {
+        LyricsView.setCover(track);
+        LyricsView.setMeta(track);
+        LyricsView.clearLines();
+
+        if (LyricsView.linesEl) {
+            const ph = document.createElement('div');
+            ph.className = 'lyrics-line';
+            ph.style.opacity = '0.4';
+            ph.textContent = 'Загрузка текста…';
+            LyricsView.linesEl.appendChild(ph);
+            LyricsView.lineEls = [ph];
+            requestAnimationFrame(() => LyricsView._updateFocus());
+        }
+    }
+
+    const myToken = ++lyricsLoadToken;
+
+    if (track._lyricsCache) {
+        if (myToken !== lyricsLoadToken) return;
+        LyricsView.renderLyrics(track._lyricsCache.text, 'https://lrclib.net');
+        if (!isRefresh) LyricsView.reveal();
+        else requestAnimationFrame(() => LyricsView._updateFocus());
+        glowEl?.classList.remove('active');
+        return;
+    }
+
+    const isCyr = (s) => /[а-яё]/i.test(String(s || ''));
+    if (isCyr(track.artist) || isCyr(track.title)) {
+        if (myToken !== lyricsLoadToken) return;
+        LyricsView.showNotFound(
+            'Откроем на Genius',
+            'Русские треки LRCLIB почти не индексирует. Нажмите кнопку ниже.',
+            track
+        );
+        glowEl?.classList.remove('active');
+        return;
+    }
+
+    if (!isRefresh) LyricsView.showLoading();
+
+    const artist = cleanTrackQuery(primaryArtist(track.artist));
+    const name   = cleanTrackQuery(track.title);
+
+    try {
+        const best = await fetchLyrics(artist, name);
+        if (myToken !== lyricsLoadToken) return;
+        if (!modal.classList.contains('active')) return;
+
+        if (!best) {
+            LyricsView.showNotFound('Текст не найден', 'Попробуйте поискать вручную.', track);
+            return;
+        }
+        if (best.instrumental && !best.plainLyrics && !best.syncedLyrics) {
+            LyricsView.showNotFound('Инструментальная композиция', 'У этого трека нет текста.', track);
+            return;
+        }
+
+        const text = best.plainLyrics
+            || (best.syncedLyrics || '').replace(/\[\d+:\d+\.\d+\]/g, '').trim();
+
+        if (!text) {
+            LyricsView.showNotFound('Текст пустой', 'Запись нашлась, но без содержимого.', track);
+            return;
+        }
+
+        track._lyricsCache = {
+            text,
+            source: 'lrclib',
+            lrclibId: best.id,
+            artist: best.artistName || track.artist,
+            title:  best.trackName  || track.title
+        };
+
+        LyricsView.renderLyrics(text, 'https://lrclib.net');
+        if (!isRefresh) LyricsView.reveal();
+        else requestAnimationFrame(() => LyricsView._updateFocus());
+
+    } catch (e) {
+        if (myToken !== lyricsLoadToken) return;
+        if (!modal.classList.contains('active')) return;
+        console.warn('lyrics fetch failed:', e);
+        LyricsView.showNotFound('Не удалось загрузить', 'Проверьте интернет или откройте поиск вручную.', track);
+    } finally {
+        if (myToken === lyricsLoadToken) glowEl?.classList.remove('active');
+    }
+}
+window.openLyrics = openLyrics;
+
 function loadSettings() {
     const settings = JSON.parse(localStorage.getItem('settings') || '{}');
 
@@ -381,9 +795,27 @@ function loadSettings() {
         respectReducedMotion();
     }
 
+    if (settings.colorPreset) {
+        applyColorPreset(settings.colorPreset);
+    }
+
+    coverBgEnabled     = !!settings.coverBg;
+    coverAccentEnabled = !!settings.coverAccent;
+
+    const bgToggle = document.getElementById('coverBgToggle');
+    if (bgToggle) bgToggle.checked = coverBgEnabled;
+
+    const accToggle = document.getElementById('coverAccentToggle');
+    if (accToggle) accToggle.checked = coverAccentEnabled;
     if (settings.visualizerMode && visualizer) {
         document.getElementById('visualizerMode').value = settings.visualizerMode;
         visualizer.setMode(settings.visualizerMode);
+    }
+
+    if (settings.normalize !== undefined) {
+        const toggle = document.getElementById('normalizeToggle');
+        if (toggle) toggle.checked = !!settings.normalize;
+        if (audioEngine) audioEngine.setNormalize(!!settings.normalize);
     }
 
     if (settings.quality) {
@@ -405,9 +837,8 @@ function loadSettings() {
         const toggle = document.getElementById('disableBgToggle');
         if (toggle) toggle.checked = true;
     }
-    if (settings.colorPreset) {
-        applyColorPreset(settings.colorPreset);
-    }
+    const current = audioEngine?.playlist?.[audioEngine.currentIndex];
+    if (current) refreshCoverAppearance(current);
     saveSettings();
 }
 
@@ -417,15 +848,13 @@ function saveSettings() {
         eqPreset:      document.getElementById('eqPreset').value,
         crossfade:     parseInt(document.getElementById('crossfadeSlider').value),
         normalize:     document.getElementById('normalizeToggle').checked,
-        automix:       document.getElementById('automixToggle').checked,
-        autostart:     document.getElementById('autostartToggle').checked,
-        repeatMode:    document.getElementById('repeatMode').value,
         fontSize:      parseInt(document.getElementById('fontSizeSlider').value),
         animation:     parseInt(document.getElementById('animationSlider').value),
         disableBg:     document.getElementById('disableBgToggle').checked,
         visualizerMode: document.getElementById('visualizerMode')?.value,
-        colorPreset:   localStorage.getItem('colorPreset') || 'yellow',
         eqCustomGains: window.equalizerUI ? window.equalizerUI.currentGains : undefined,
+        coverBg:          document.getElementById('coverBgToggle')?.checked || false,
+        coverAccent:      document.getElementById('coverAccentToggle')?.checked || false,
     };
     localStorage.setItem('settings', JSON.stringify(settings));
 }
@@ -486,6 +915,13 @@ function setupEvents() {
     });
     document.getElementById('prevBtn').addEventListener('click', () => audioEngine.prev());
     document.getElementById('nextBtn').addEventListener('click', () => audioEngine.next());
+    document.getElementById('lyricsBtn')?.addEventListener('click', () => {
+        if (audioEngine.playlist.length === 0) {
+            showNotification('Сначала загрузите треки', true);
+            return;
+        }
+        openLyrics(audioEngine.currentIndex);
+    });
     document.getElementById('shuffleBtn').addEventListener('click', () => {
         const isShuffle = audioEngine.toggleShuffle();
         document.getElementById('shuffleBtn').style.opacity = isShuffle ? '1' : '0.5';
@@ -536,6 +972,10 @@ function setupEvents() {
         audioEngine.setVolume(e.target.value);
     });
 
+    document.getElementById('volumeIconBtn')?.addEventListener('click', () => {
+        audioEngine.toggleMute();
+    });
+
     document.getElementById('likedTile').addEventListener('click', openLikedModal);
     document.getElementById('playlistsTile').addEventListener('click', openPlaylistsModal);
     document.querySelectorAll('.modal').forEach(modal => {
@@ -560,14 +1000,14 @@ function setupEvents() {
                 saveSettings();
             });
         });
+    });
 
-        document.getElementById('disableBgToggle')?.addEventListener('change', (e) => {
-            if (e.target.checked) {
-                backgroundSystem.stop();
-            } else if (!isEcoMode) {
-                backgroundSystem.start();
-            }
-        });
+    document.getElementById('disableBgToggle')?.addEventListener('change', (e) => {
+        if (e.target.checked) {
+            backgroundSystem.stop();
+        } else if (!isEcoMode) {
+            backgroundSystem.start();
+        }
     });
 
     document.querySelectorAll('.select').forEach(select => {
@@ -594,6 +1034,30 @@ function setupEvents() {
         saveSettings();
     });
 
+        document.getElementById('coverBgToggle')?.addEventListener('change', (e) => {
+        coverBgEnabled = e.target.checked;
+        const current = audioEngine.playlist[audioEngine.currentIndex];
+        setCoverBackground(current);
+        saveSettings();
+        showNotification(e.target.checked
+            ? 'Обложка как фон: Вкл'
+            : 'Обложка как фон: Выкл');
+    });
+
+    document.getElementById('coverAccentToggle')?.addEventListener('change', async (e) => {
+        coverAccentEnabled = e.target.checked;
+        if (coverAccentEnabled) {
+            const current = audioEngine.playlist[audioEngine.currentIndex];
+            await applyCoverAccent(current);
+        } else {
+            restoreUserAccent();
+        }
+        saveSettings();
+        showNotification(e.target.checked
+            ? 'Акцент под обложку: Вкл'
+            : 'Акцент под обложку: Выкл');
+    });
+
     document.getElementById('reducedMotionToggle')?.addEventListener('change', (e) => {
         const val = e.target.checked ? 20 : 100;
         document.getElementById('animationSlider').value = val;
@@ -618,6 +1082,8 @@ function setupEvents() {
             audioEngine.playlist = [];
             audioEngine.currentIndex = 0;
             audioEngine.pause();
+            audioEngine.audio.removeAttribute('src');
+            audioEngine.audio.load();
             document.getElementById('trackTitle').textContent = 'Загрузите музыку';
             document.getElementById('trackArtist').textContent = 'Нажмите кнопку "Загрузить"';
         }
@@ -654,6 +1120,24 @@ function setupEvents() {
         if (visualizer) visualizer.setMode(e.target.value);
         saveSettings();
     });
+
+    document.getElementById('normalizeToggle')?.addEventListener('change', (e) => {
+        audioEngine.setNormalize(e.target.checked);
+        saveSettings();
+        showNotification(e.target.checked
+            ? 'Нормализация громкости: Вкл'
+            : 'Нормализация громкости: Выкл');
+    });
+
+        const lyricsModal = document.getElementById('lyricsModal');
+        if (lyricsModal) {
+            new MutationObserver(() => {
+                if (!lyricsModal.classList.contains('active')) {
+                    document.getElementById('lyricsGlow')?.classList.remove('active');
+                    if (window.LyricsView) window.LyricsView.reset();
+                }
+            }).observe(lyricsModal, { attributes: true, attributeFilter: ['class'] });
+    }
 
     document.addEventListener('keydown', (e) => {
         if (e.target.closest('input, select, textarea, button, [contenteditable]')) return;

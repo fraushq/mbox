@@ -7,9 +7,13 @@ class AudioEngine {
         this.currentIndex = 0;
         this.isPlaying = false;
         this.shuffle = false;
-        this.repeatMode = 'off'; // 'off' | 'all' | 'one'
-        this.volume = 0.75;
-        this.audio.volume = this.volume;
+        this.repeatMode = 'off';
+        this.volume = 0.25;
+        this.audio.volume = 1;
+        this.audio.muted = false;
+        this._preMuteVolume = 0.25;
+        this._muted = false;
+        this.masterGain = null;
         this.audioCtx = null;
         this.analyser = null;
         this.sourceNode = null;
@@ -23,6 +27,15 @@ class AudioEngine {
         this._expectFadeIn = false;
         this._isFadingOut = false;
         this.storage = null;
+        this.normalizeEnabled = true;
+        this.normGain = null;
+        this.limiter = null;
+        this.normAnalyser = null;
+        this._normBuf = null;
+        this._rmsSmoothed = 0;
+        this._normTimer = null;
+        this._normTarget = 0.08;
+        this.onCoverLoaded = null;
         this.setupListeners();
     }
 
@@ -82,12 +95,10 @@ class AudioEngine {
             const Ctx = window.AudioContext || window.webkitAudioContext;
             if (!Ctx) return;
             this.audioCtx = new Ctx();
-
             this.highpass = this.audioCtx.createBiquadFilter();
             this.highpass.type = 'highpass';
             this.highpass.frequency.value = 20;
             this.highpass.Q.value = 0.7;
-
             this.lowpass = this.audioCtx.createBiquadFilter();
             this.lowpass.type = 'lowpass';
             this.lowpass.frequency.value = 22050;
@@ -119,18 +130,35 @@ class AudioEngine {
             this.analyser.smoothingTimeConstant = 0.8;
             this.fadeGain = this.audioCtx.createGain();
             this.fadeGain.gain.value = 1;
+            this.normGain = this.audioCtx.createGain();
+            this.normGain.gain.value = 1;
+            this.limiter = this.audioCtx.createDynamicsCompressor();
+            this.limiter.threshold.value = 0; 
+            this.limiter.knee.value = 6;
+            this.limiter.ratio.value = 1;
+            this.limiter.attack.value = 0.003;
+            this.limiter.release.value = 0.25;
+            this.normAnalyser = this.audioCtx.createAnalyser();
+            this.normAnalyser.fftSize = 2048;
+            this.normAnalyser.smoothingTimeConstant = 0.3;
+            this._normBuf = new Float32Array(this.normAnalyser.fftSize);
             this.sourceNode = this.audioCtx.createMediaElementSource(this.audio);
-
+            this.masterGain = this.audioCtx.createGain();
+            this.masterGain.gain.value = this._muted ? 0 : this.volume;
             let node = this.sourceNode;
             node.connect(this.highpass); node = this.highpass;
             for (const f of this.eqFilters) { node.connect(f); node = f; }
             node.connect(this.lowpass);   node = this.lowpass;
-            node.connect(this.fadeGain);  node = this.fadeGain;
-            node.connect(this.analyser);
-            this.analyser.connect(this.audioCtx.destination);
-
+            this.lowpass.connect(this.normGain);
+            this.normGain.connect(this.limiter);
+            this.limiter.connect(this.fadeGain);
+            this.fadeGain.connect(this.analyser);
+            this.analyser.connect(this.masterGain);
+            this.masterGain.connect(this.audioCtx.destination);
+            this.lowpass.connect(this.normAnalyser);
             this.applyQuality(this.currentQuality);
             this.applyEQ(this.currentEQ);
+            this.setNormalize(this.normalizeEnabled);
 
         } catch (err) {
             console.warn('AudioContext init failed:', err);
@@ -141,7 +169,57 @@ class AudioEngine {
             this.lowpass = null;
             this.fadeGain = null;
             this.eqFilters = [];
+            this.normGain = null;
+            this.limiter = null;
+            this.normAnalyser = null;
+            this._normBuf = null;
         }
+    }
+
+    _extractCover(track, file) {
+        if (!window.jsmediatags || !file) return;
+
+        try {
+            window.jsmediatags.read(file, {
+                onSuccess: (tag) => {
+                    const pic = tag && tag.tags && tag.tags.picture;
+                    if (!pic || !pic.data) return;
+
+                    try {
+                        const bytes = new Uint8Array(pic.data);
+                        const blob = new Blob([bytes], {
+                            type: pic.format || 'image/jpeg'
+                        });
+                        if (blob.size > 5 * 1024 * 1024) return;
+
+                        track.coverBlob = blob;
+                        if (track.coverUrl) {
+                            try { URL.revokeObjectURL(track.coverUrl); } catch (e) {}
+                        }
+                        track.coverUrl = URL.createObjectURL(blob);
+                        if (this.storage) {
+                            this.storage.updateMetadata(track).catch(() => {});
+                        }
+                        if (typeof this.onCoverLoaded === 'function') {
+                            this.onCoverLoaded(track);
+                        }
+                    } catch (e) {
+                        console.warn('cover parse failed:', e);
+                    }
+                },
+                onError: () => {}
+            });
+
+        } catch (e) {
+            console.warn('_extractCover error:', e);
+        }
+    }
+    reextractAllCovers() {
+        if (!this.storage) return;
+        this.playlist.forEach(track => {
+            if (track.coverBlob || !track.blob) return;
+            this._extractCover(track, track.blob);
+        });
     }
 
     getFrequencyData() {
@@ -149,6 +227,66 @@ class AudioEngine {
         const data = new Uint8Array(this.analyser.frequencyBinCount);
         this.analyser.getByteFrequencyData(data);
         return data;
+    }
+
+    setNormalize(enabled) {
+        this.normalizeEnabled = !!enabled;
+        if (!this.audioCtx) return;
+
+        const now = this.audioCtx.currentTime;
+
+        if (enabled) {
+            this.limiter.threshold.setTargetAtTime(-6, now, 0.1);
+            this.limiter.ratio.setTargetAtTime(12, now, 0.1);
+            this._rmsSmoothed = 0;
+            this._startNormLoop();
+        } else {
+            this.limiter.threshold.setTargetAtTime(0, now, 0.1);
+            this.limiter.ratio.setTargetAtTime(1, now, 0.1);
+            this.normGain.gain.cancelScheduledValues(now);
+            this.normGain.gain.setTargetAtTime(1, now, 0.3);
+            this._stopNormLoop();
+        }
+    }
+
+    _startNormLoop() {
+        if (this._normTimer) return;
+        this._tickNorm();
+    }
+
+    _stopNormLoop() {
+        clearTimeout(this._normTimer);
+        this._normTimer = null;
+    }
+
+    _tickNorm() {
+        if (!this.normalizeEnabled || !this.audioCtx) {
+            this._normTimer = null;
+            return;
+        }
+        if (this.isPlaying) this._updateNormGain();
+        this._normTimer = setTimeout(() => this._tickNorm(), 200);
+    }
+
+    _updateNormGain() {
+        if (!this.normAnalyser || !this.normGain) return;
+
+        this.normAnalyser.getFloatTimeDomainData(this._normBuf);
+
+        let sum = 0;
+        for (let i = 0; i < this._normBuf.length; i++) {
+            const s = this._normBuf[i];
+            sum += s * s;
+        }
+        const rms = Math.sqrt(sum / this._normBuf.length);
+        if (rms < 0.0005) return;
+        if (this._rmsSmoothed === 0) this._rmsSmoothed = rms;
+        else this._rmsSmoothed = this._rmsSmoothed * 0.85 + rms * 0.15;
+        let desired = this._normTarget / this._rmsSmoothed;
+        desired = Math.max(0.6, Math.min(2.5, desired));
+        const now = this.audioCtx.currentTime;
+        this.normGain.gain.cancelScheduledValues(now);
+        this.normGain.gain.setTargetAtTime(desired, now, 0.8);
     }
 
     setEQPreset(preset) {
@@ -175,9 +313,9 @@ class AudioEngine {
     }
 
     setEQGains(gainsArray) {
+        this.currentEQ = 'custom';
         if (!this.eqFilters.length) return;
         this.applyEQGains(gainsArray);
-        this.currentEQ = 'custom';
     }
 
     getEQGains() {
@@ -264,14 +402,23 @@ class AudioEngine {
 
         audioFiles.forEach((file, i) => {
             const url = URL.createObjectURL(file);
-            const baseName = file.name.replace(/\.[^/.]+$/, '');
+                        let baseName = file.name.replace(/\.[^/.]+$/, '');
+            baseName = baseName.replace(/^\s*[\[\(]?\d{1,3}[\]\)]?\s*[-._]\s*/, '');
+
             let title = baseName;
             let artist = 'Неизвестный исполнитель';
 
             if (baseName.includes(' - ')) {
-                const parts = baseName.split(' - ');
-                artist = parts[0].trim() || artist;
-                title = parts.slice(1).join(' - ').trim() || title;
+                const parts = baseName.split(' - ').map(s => s.trim()).filter(Boolean);
+                if (parts.length >= 2) {
+                    artist = parts[0];
+                    title  = parts.slice(1).join(' - ');
+                }
+            }
+
+            if (/^\d+$/.test(artist)) {
+                title  = `${artist} - ${title}`;
+                artist = 'Неизвестный исполнитель';
             }
 
             const createdAt = Date.now() + i;
@@ -287,6 +434,7 @@ class AudioEngine {
                 blob: file,
                 createdAt
             };
+
             this.playlist.push(track);
             added.push(track);
 
@@ -295,6 +443,7 @@ class AudioEngine {
                     console.warn('Не удалось сохранить трек:', e)
                 );
             }
+            this._extractCover(track, file);
         });
 
         if (added.length > 0 && this.playlist.length === added.length) {
@@ -304,7 +453,7 @@ class AudioEngine {
         return added;
     }
 
-       removeTrack(index) {
+    removeTrack(index) {
         if (index < 0 || index >= this.playlist.length) return;
         const track = this.playlist[index];
         const wasPlaying = this.isPlaying && this.currentIndex === index;
@@ -317,6 +466,9 @@ class AudioEngine {
 
         if (track.url && track.url.startsWith('blob:')) {
             try { URL.revokeObjectURL(track.url); } catch (e) {}
+        }
+        if (track.coverUrl && track.coverUrl.startsWith('blob:')) {
+            try { URL.revokeObjectURL(track.coverUrl); } catch (e) {}
         }
         this.playlist.splice(index, 1);
 
@@ -342,6 +494,64 @@ class AudioEngine {
             if (wasPlaying) this.play();
         }
     }
+
+    removeTracks(ids) {
+        if (!ids || ids.length === 0) return 0;
+        const idSet = new Set(ids);
+        const currentTrack = this.playlist[this.currentIndex];
+        const wasPlaying = this.isPlaying;
+        const currentRemoved = currentTrack && idSet.has(currentTrack.id);
+        for (const t of this.playlist) {
+            if (!idSet.has(t.id)) continue;
+            if (t.url && t.url.startsWith('blob:')) {
+                try { URL.revokeObjectURL(t.url); } catch (e) {}
+            }
+            if (t.coverUrl && t.coverUrl.startsWith('blob:')) {
+                try { URL.revokeObjectURL(t.coverUrl); } catch (e) {}
+            }
+            if (this.storage) {
+                this.storage.deleteTrack(t.id).catch(() => {});
+            }
+        }
+
+        const before = this.playlist.length;
+        this.playlist = this.playlist.filter(t => !idSet.has(t.id));
+        const removedCount = before - this.playlist.length;
+
+        if (this.playlist.length === 0) {
+            this.audio.pause();
+            this.audio.removeAttribute('src');
+            this.audio.load();
+            this.isPlaying = false;
+            this.updatePlayButtons();
+
+            const set = (id, text) => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = text;
+            };
+            set('trackTitle', 'Загрузите музыку');
+            set('trackArtist', 'Нажмите кнопку "Загрузить"');
+            set('currentTime', '0:00');
+            set('totalTime', '0:00');
+            const pf = document.getElementById('progressFill');
+            if (pf) pf.style.width = '0%';
+
+            this._updatePlayerCover(null);
+            return removedCount;
+        }
+
+        if (currentRemoved) {
+            this.currentIndex = Math.min(this.currentIndex, this.playlist.length - 1);
+            this.loadCurrentTrack();
+            if (wasPlaying) this.play();
+        } else {
+            const newIdx = this.playlist.indexOf(currentTrack);
+            if (newIdx >= 0) this.currentIndex = newIdx;
+        }
+
+        return removedCount;
+    }
+
     async restoreFromStorage() {
         if (!this.storage) return 0;
 
@@ -365,23 +575,43 @@ class AudioEngine {
                 fileName:  rec.fileName || '',
                 region:    rec.region ?? -1,
                 createdAt: rec.createdAt || Date.now(),
-                blob:      rec.blob
+                blob:      rec.blob,
+                coverBlob: rec.coverBlob || null,
+                coverUrl:  null
             });
         });
 
         this.currentIndex = 0;
         if (this.playlist.length > 0) {
-            this.loadCurrentTrack();
+            try {
+                this.loadCurrentTrack();
+            } catch (e) {
+                console.warn('loadCurrentTrack failed on restore:', e);
+            }
         }
         return this.playlist.length;
     }
 
-    loadCurrentTrack() {
-        const track = this.playlist[this.currentIndex];
-        if (!track) return;
-        this._isFadingOut = false;
+        loadCurrentTrack() {
+            const track = this.playlist[this.currentIndex];
+            if (!track) return;
+            this._isFadingOut = false;
+
+        if (this.normGain && this.audioCtx) {
+            const now = this.audioCtx.currentTime;
+            this.normGain.gain.cancelScheduledValues(now);
+            this.normGain.gain.setValueAtTime(1, now);
+            this._rmsSmoothed = 0;
+        }
+
         if (track.blob && !track.url) {
             track.url = URL.createObjectURL(track.blob);
+        }
+
+        if (track.coverBlob && !track.coverUrl) {
+            try {
+                track.coverUrl = URL.createObjectURL(track.coverBlob);
+            } catch (e) {}
         }
 
         this.audio.src = track.url;
@@ -389,6 +619,39 @@ class AudioEngine {
         document.getElementById('trackArtist').textContent = track.artist;
         document.getElementById('progressFill').style.width = '0%';
         document.getElementById('currentTime').textContent = '0:00';
+
+        this._updatePlayerCover(track);
+
+        if (typeof this.onTrackChange === 'function') {
+            try { this.onTrackChange(track, this.currentIndex); }
+            catch (e) { console.warn('onTrackChange error:', e); }
+        }
+    }
+    
+
+    ensureCoverUrl(track) {
+        if (!track) return null;
+        if (track.coverUrl) return track.coverUrl;
+        if (track.coverBlob) {
+            try {
+                track.coverUrl = URL.createObjectURL(track.coverBlob);
+            } catch (e) {
+                return null;
+            }
+        }
+        return track.coverUrl || null;
+    }
+
+    _updatePlayerCover(track) {
+        const el = document.getElementById('playerCover');
+        if (!el) return;
+        if (track && track.coverUrl) {
+            el.style.backgroundImage = `url("${track.coverUrl}")`;
+            el.classList.add('has-image');
+        } else {
+            el.style.backgroundImage = '';
+            el.classList.remove('has-image');
+        }
     }
 
         play() {
@@ -498,7 +761,48 @@ class AudioEngine {
     setVolume(val) {
         const v = Math.max(0, Math.min(100, parseInt(val, 10) || 0));
         this.volume = v / 100;
-        this.audio.volume = this.volume;
+        if (this.masterGain && this.audioCtx) {
+            const now = this.audioCtx.currentTime;
+            const target = this._muted ? 0 : this.volume;
+            this.masterGain.gain.cancelScheduledValues(now);
+            this.masterGain.gain.setTargetAtTime(target, now, 0.02);
+        }
+        if (v > 0 && this._muted) this._muted = false;
+        if (v > 0) this._preMuteVolume = this.volume;
+
+        this.updateVolumeUI();
+    }
+
+    toggleMute() {
+        this._muted = !this._muted;
+        if (!this._muted && this.volume === 0) {
+            this.volume = this._preMuteVolume || 0.25;
+        }
+        if (this.masterGain && this.audioCtx) {
+            const now = this.audioCtx.currentTime;
+            const target = this._muted ? 0 : this.volume;
+            this.masterGain.gain.cancelScheduledValues(now);
+            this.masterGain.gain.setTargetAtTime(target, now, 0.02);
+        }
+        this.updateVolumeUI();
+        return this._muted;
+    }
+
+    updateVolumeUI() {
+        const slider = document.getElementById('volumeSlider');
+        const btn = document.getElementById('volumeIconBtn');
+        const muted = this._muted || this.volume === 0;
+
+        if (slider && !slider.matches(':active')) {
+            slider.value = Math.round(this.volume * 100);
+        }
+        if (btn) {
+            btn.classList.toggle('muted', muted);
+            const title = muted ? 'Включить звук' : 'Выключить звук';
+            btn.title = title;
+            btn.setAttribute('aria-label', title);
+            btn.setAttribute('aria-pressed', muted ? 'true' : 'false');
+        }
     }
 
     formatTime(sec) {

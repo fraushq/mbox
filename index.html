@@ -15,7 +15,6 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<!-- REGISTER PAGE -->
 <div class="page-register-wrapper" id="registerWrapper">
     <div class="register-card glass">
         <div class="register-logo">
@@ -97,8 +96,8 @@
 <div class="bg-image" id="bgImage">
     <img id="bgImageEl" alt="">
 </div>
+<div class="cover-bg" id="coverBg" aria-hidden="true"></div>
 
-<!-- HEADER -->
 <header class="header">
     <nav class="nav">
         <div class="nav-item profile glass active" data-page="home">
@@ -112,11 +111,16 @@
         <div class="nav-item glass" data-page="profile">Профиль</div>
     </nav>
     <div class="header-actions">
-        <button class="upload-btn glass" id="uploadBtnHeader" title="Загрузить треки">
+        <button class="upload-btn glass" id="uploadBtnHeader"
+                title="Загрузить треки"
+                data-tip-title="Загрузить треки"
+                data-tip="Все аудиофайлы сохраняются локально в браузере.">
             <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg>
             <span>Загрузить</span>
         </button>
-        <div class="eco-toggle-wrapper glass">
+        <div class="eco-toggle-wrapper glass"
+            data-tip-title="Эко-режим"
+            data-tip="Отключает анимации, свечения и фоновую сетку. Экономит батарею и снижает нагрузку на CPU. На звук не влияет.">
             <span class="eco-label">Эко режим</span>
             <label class="eco-toggle">
                 <input type="checkbox" id="ecoToggle">
@@ -126,7 +130,6 @@
     </div>
 </header>
 
-<!-- HOME PAGE -->
 <div class="page active" id="page-home">
     <main class="main-content">
         <section class="queue-section">
@@ -140,6 +143,15 @@
             </div>
         </div>
         <div class="track-info">
+            <button class="lyrics-trigger" id="lyricsBtn" type="button">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h10v2H4z"/>
+                </svg>
+                <span>Найти текст (бета)</span>
+            </button>
+            <div class="player-cover" id="playerCover">
+                <span class="player-cover-icon">♪</span>
+            </div>
             <div class="track-title" id="trackTitle">Загрузите музыку</div>
             <div class="track-artist" id="trackArtist">Нажмите кнопку "Загрузить"</div>
         </div>
@@ -172,8 +184,15 @@
             </button>
         </div>
         <div class="volume-control">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="color:var(--text-secondary)"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
-            <input type="range" class="volume-slider" id="volumeSlider" min="0" max="100" value="75">
+            <button class="volume-icon-btn" id="volumeIconBtn" type="button" title="Выключить звук" aria-label="Выключить звук">
+                <svg class="vol-icon-normal" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+                </svg>
+                <svg class="vol-icon-muted" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>
+                </svg>
+            </button>
+            <input type="range" class="volume-slider" id="volumeSlider" min="0" max="100" value="25" aria-label="Громкость">
         </div>
         <section class="recommendations">
             <h2 class="section-title">Рекомендации для вас</h2>
@@ -182,7 +201,6 @@
     </main>
 </div>
 
-<!-- MY MUSIC PAGE -->
 <div class="page" id="page-mymusic">
     <main class="mymusic-content">
         <h1 class="page-title">Моя музыка</h1>
@@ -211,14 +229,47 @@
                 <div class="tile-subtitle">Созданные коллекции</div>
             </div>
         </section>
-        <section>
+                <section>
             <h2 class="section-title">Все загруженные треки</h2>
+            <div class="library-toolbar" id="libraryToolbar">
+                <div class="library-search">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+                    </svg>
+                    <input type="search" id="librarySearch" placeholder="Поиск по названию или артисту" autocomplete="off" spellcheck="false">
+                    <button class="library-search-clear" id="librarySearchClear" type="button" title="Очистить" aria-label="Очистить поиск">
+                        <svg viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                    </button>
+                </div>
+
+                <div class="library-sort">
+                    <label for="librarySort" class="library-sort-label">Сортировка</label>
+                    <div class="select-wrapper">
+                        <select class="select" id="librarySort">
+                            <option value="date-desc">Сначала новые</option>
+                            <option value="date-asc">Сначала старые</option>
+                            <option value="title-asc">Название A→Я</option>
+                            <option value="title-desc">Название Я→A</option>
+                            <option value="artist-asc">Артист A→Я</option>
+                            <option value="artist-desc">Артист Я→A</option>
+                            <option value="duration-desc">Дольше сначала</option>
+                            <option value="duration-asc">Короче сначала</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="library-count" id="libraryCount"></div>
             <div id="uploadedTracksList"></div>
+            <div class="library-empty" id="libraryEmpty" hidden>
+                <div class="empty-state-icon">♪</div>
+                <div class="empty-state-title">Ничего не найдено</div>
+                <div class="empty-state-text">Попробуйте изменить запрос или сбросить фильтры</div>
+            </div>
         </section>
     </main>
 </div>
 
-<!-- LIKED TRACKS MODAL -->
 <div class="modal" id="likedModal">
     <div class="modal-content glass">
         <div class="modal-header">
@@ -229,7 +280,6 @@
     </div>
 </div>
 
-<!-- PLAYLISTS MODAL -->
 <div class="modal" id="playlistsModal">
     <div class="modal-content glass">
         <div class="modal-header">
@@ -240,7 +290,6 @@
     </div>
 </div>
 
-<!-- CHARTS PAGE -->
 <div class="page" id="page-charts">
     <main class="charts-content">
         <section class="playlists-section">
@@ -254,7 +303,6 @@
     </main>
 </div>
 
-<!-- WORLD PAGE -->
 <div class="page" id="page-world">
     <main class="world-content">
         <div class="globe-wrap">
@@ -269,7 +317,6 @@
     </main>
 </div>
 
-<!-- SETTINGS PAGE -->
 <div class="page" id="page-settings">
     <main class="settings-content">
         <h1 class="page-title">Настройки</h1>
@@ -277,7 +324,9 @@
         <section class="settings-section glass">
             <h2 class="settings-section-title"><span>🔊</span>Звук и аудио</h2>
 
-            <div class="setting-item">
+            <div class="setting-item"
+                data-tip-title="Качество звука"
+                data-tip="Ужимает звук, влияет от выбранного качества, при lossless играет исходный файл.">
                 <div>
                     <div class="setting-label">Качество звука</div>
                     <div class="setting-description">Выберите качество воспроизведения</div>
@@ -290,7 +339,9 @@
                 </div>
             </div>
 
-            <div class="setting-item eq-setting">
+            <div class="setting-item eq-setting"
+                data-tip-title="Эквалайзер"
+                data-tip="10 полос от 32 Гц до 16 кГц. Выбирай готовый пресет или настрой вручную и сохрани свой через 💾.">
                 <div class="eq-header">
                     <div>
                         <div class="setting-label">Эквалайзер</div>
@@ -315,7 +366,9 @@
                 <div class="eq-saved" id="eqSavedList"></div>
             </div>
 
-            <div class="setting-item">
+            <div class="setting-item"
+                data-tip-title="Crossfade"
+                data-tip="Плавное затухание в конце трека перед запуском следующего. 0 сек — выключено, максимум 12 сек.">
                 <div>
                     <div class="setting-label">Crossfade</div>
                     <div class="setting-description">Плавный переход между треками</div>
@@ -326,7 +379,9 @@
                 </div>
             </div>
 
-            <div class="setting-item">
+            <div class="setting-item"
+                data-tip-title="Нормализация громкости"
+                data-tip="Автоматически выравнивает уровень громкости между треками.">
                 <div>
                     <div class="setting-label">Нормализация громкости</div>
                     <div class="setting-description">Автоматическое выравнивание громкости</div>
@@ -337,7 +392,9 @@
                 </label>
             </div>
 
-            <div class="setting-item">
+            <div class="setting-item"
+                data-tip-title="Режим визуализатора"
+                data-tip="Столбики — частотный спектр, Волна — осциллограмма, Пульсация — реакция на бас.">
                 <div>
                     <div class="setting-label">Режим визуализатора</div>
                     <div class="setting-description">Как отображается реакция на музыку</div>
@@ -353,39 +410,10 @@
         </section>
 
         <section class="settings-section glass">
-            <h2 class="settings-section-title"><span>▶️</span>Воспроизведение</h2>
-            <div class="setting-item">
-                <div>
-                    <div class="setting-label">Автомикс</div>
-                    <div class="setting-description">Плавный переход между треками</div>
-                </div>
-                <label class="toggle"><input type="checkbox" id="automixToggle"><span class="toggle-slider"></span></label>
-            </div>
-            <div class="setting-item">
-                <div>
-                    <div class="setting-label">Автостарт</div>
-                    <div class="setting-description">Автоматически начинать воспроизведение</div>
-                </div>
-                <label class="toggle"><input type="checkbox" id="autostartToggle"><span class="toggle-slider"></span></label>
-            </div>
-            <div class="setting-item">
-                <div>
-                    <div class="setting-label">Режим повтора</div>
-                    <div class="setting-description">Повтор по умолчанию</div>
-                </div>
-                <div class="select-wrapper">
-                    <select class="select" id="repeatMode">
-                        <option value="off">Выключен</option>
-                        <option value="all">Все треки</option>
-                        <option value="one">Один трек</option>
-                    </select>
-                </div>
-            </div>
-        </section>
-
-        <section class="settings-section glass">
             <h2 class="settings-section-title"><span>🎨</span>Интерфейс</h2>
-            <div class="setting-item">
+            <div class="setting-item"
+                data-tip-title="Размер шрифта"
+                data-tip="Масштаб всего интерфейса, от 12 до 20 пикселей.">
                 <div>
                     <div class="setting-label">Размер шрифта</div>
                     <div class="setting-description">Настройте размер текста</div>
@@ -395,7 +423,9 @@
                     <span class="slider-value" id="fontSizeValue">16px</span>
                 </div>
             </div>
-                    <div class="setting-item">
+                    <div class="setting-item"
+                        data-tip-title="Интенсивность анимаций"
+                        data-tip="Общая скорость переходов и появления элементов. 0% — почти без движения, 100% — все эффекты.">
             <div>
                 <div class="setting-label">Интенсивность анимаций</div>
                 <div class="setting-description">Уровень анимационных эффектов</div>
@@ -406,7 +436,9 @@
             </div>
         </div>
 
-        <div class="setting-item">
+        <div class="setting-item"
+            data-tip-title="Уменьшить движение"
+            data-tip="Спокойный режим для чувствительных к анимации: тихий фон, короче переходы, без свечений.">
             <div>
                 <div class="setting-label">Уменьшить движение</div>
                 <div class="setting-description">Спокойные переходы, тихий фон, без свечений</div>
@@ -416,15 +448,42 @@
                 <span class="toggle-slider"></span>
             </label>
         </div>
-
-        <div class="setting-item">
+                <div class="setting-item"
+            data-tip-title="Обложка как фон"
+            data-tip="Текущая обложка трека размывается и становится фоном всего приложения.">
+            <div>
+                <div class="setting-label">Обложка как фон</div>
+                <div class="setting-description">Текущий трек в качестве фона</div>
+            </div>
+            <label class="toggle">
+                <input type="checkbox" id="coverBgToggle">
+                <span class="toggle-slider"></span>
+            </label>
+        </div>
+        <div class="setting-item"
+            data-tip-title="Акцент под обложку"
+            data-tip="Акцентный цвет интерфейса автоматически подстраивается под доминирующий цвет обложки.">
+            <div>
+                <div class="setting-label">Акцент под обложку</div>
+                <div class="setting-description">Автоматический цвет из обложки трека</div>
+            </div>
+            <label class="toggle">
+                <input type="checkbox" id="coverAccentToggle">
+                <span class="toggle-slider"></span>
+            </label>
+        </div>
+        <div class="setting-item"
+            data-tip-title="Акцентный цвет"
+            data-tip="Основной цвет интерфейса: кнопки, обводки, подсветка в глобусе и визуализаторе.">
             <div>
                 <div class="setting-label">Акцентный цвет</div>
                 <div class="setting-description">Основной цвет кнопок и элементов</div>
             </div>
             <div class="color-swatches" id="colorSwatches"></div>
         </div>
-        <div class="setting-item bg-setting">
+        <div class="setting-item bg-setting"
+            data-tip-title="Фон приложения"
+            data-tip="Своя картинка вместо чёрного фона. Изображения хранятся локально в браузере.">
             <div>
                 <div class="setting-label">Фон приложения</div>
                 <div class="setting-description">Своё изображение вместо чёрного фона</div>
@@ -449,7 +508,9 @@
 
         <section class="settings-section glass">
             <h2 class="settings-section-title"><span>🌿</span>Эко-режим</h2>
-            <div class="setting-item">
+            <div class="setting-item"
+                data-tip-title="Эко-режим"
+                data-tip="Текущее состояние переключателя из шапки. Включить/выключить можно там же или хоткеем Ctrl+E.">
                 <div>
                     <div class="setting-label">Статус эко-режима</div>
                     <div class="setting-description">Переключатель в шапке сайта</div>
@@ -467,7 +528,9 @@
 
         <section class="settings-section glass">
             <h2 class="settings-section-title"><span>💾</span>Хранилище</h2>
-            <div class="setting-item">
+            <div class="setting-item"
+                data-tip-title="Хранилище"
+                data-tip="Размер кэша треков в IndexedDB. Очистка удалит все загруженные аудиофайлы без возможности восстановления.">
                 <div>
                     <div class="setting-label">Размер кэша</div>
                     <div class="setting-description">Временные файлы для ускорения загрузки</div>
@@ -493,7 +556,6 @@
     </main>
 </div>
 
-<!-- PROFILE PAGE -->
 <div class="page" id="page-profile">
     <main class="profile-content">
         <h1 class="page-title">Профиль</h1>
@@ -573,7 +635,6 @@
     </main>
 </div>
 
-<!-- DROPZONE OVERLAY -->
 <div class="drop-zone" id="dropZone">
     <div class="drop-zone-content">
         <div class="drop-zone-icon">📁</div>
@@ -582,11 +643,14 @@
     </div>
 </div>
 
-<!-- CONTEXT MENU -->
 <div class="context-menu" id="contextMenu">
     <div class="context-menu-item" data-action="play">
         <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
         <span>Воспроизвести</span>
+    </div>
+    <div class="context-menu-item" data-action="lyrics">
+        <svg viewBox="0 0 24 24"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h10v2H4z"/></svg>
+        <span>Текст песни</span>
     </div>
     <div class="context-menu-item context-menu-submenu" data-action="addToPlaylist">
         <svg viewBox="0 0 24 24"><path d="M14 10H2v2h12v-2zm0-4H2v2h12V6zm4 8v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zM2 16h8v-2H2v2z"/></svg>
@@ -601,10 +665,48 @@
         <span>Удалить</span>
     </div>
 </div>
+<div class="tip-panel" id="tipPanel" aria-live="polite">
+    <div class="tip-panel-title"></div>
+    <div class="tip-panel-desc"></div>
+</div>
+
+<div class="modal lyrics-modal" id="lyricsModal">
+    <div class="lyrics-modal-inner glass">
+        <button class="modal-close lyrics-close" onclick="closeModal('lyricsModal')">×</button>
+
+        <div class="lyrics-stage" id="lyricsStage">
+            <div class="lyrics-left">
+                <div class="lyrics-cover" id="lyricsCover">
+                    <div class="lyrics-cover-ph">♪</div>
+                </div>
+                <div class="lyrics-meta">
+                    <div class="lyrics-meta-title" id="lyricsMetaTitle"></div>
+                    <div class="lyrics-meta-artist" id="lyricsMetaArtist"></div>
+                </div>
+                <div class="lyrics-player" id="lyricsPlayer">
+                    <div class="lyrics-player-buttons" id="lyricsPlayerButtons"></div>
+                    <div class="lyrics-player-volume" id="lyricsPlayerVolume"></div>
+                </div>
+            </div>
+
+            <div class="lyrics-status" id="lyricsStatus"></div>
+
+            <div class="lyrics-scroller" id="lyricsScroller">
+                <div class="lyrics-lines" id="lyricsLines"></div>
+            </div>
+
+            <div class="lyrics-source-row" id="lyricsSource"></div>
+        </div>
+    </div>
+</div>
+
+<div class="lyrics-glow" id="lyricsGlow"></div>
+
 <script src="artists.js"></script>
 <script src="track-storage.js"></script>
 <script src="config.js"></script>
 <script src="helpers.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsmediatags@3.9.7/dist/jsmediatags.min.js"></script>
 <script src="audio-engine.js"></script>
 <script src="registration.js"></script>
 <script src="playlists.js"></script>
