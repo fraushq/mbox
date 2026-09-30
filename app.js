@@ -95,7 +95,6 @@ class MiniViz {
         const [r, g, b] = (typeof getAccentRGB === 'function') ? getAccentRGB() : [255, 212, 0];
         this.ctx.fillStyle = `rgba(${r}, ${g}, ${b}, 0.25)`;
         const W = this.W, H = this.H;
-        // три маленькие застывшие полоски
         const bw = 3, gap = 3;
         const totalW = bw * 3 + gap * 2;
         const startX = (W - totalW) / 2;
@@ -118,7 +117,6 @@ class MiniViz {
         const maxH = H - 8;
 
         for (let i = 0; i < barCount; i++) {
-            // низкие частоты берём с индексами 1, 3, 6 (bass/mid/high)
             const idx = Math.floor((i + 1) * data.length / (barCount + 2));
             const v = Math.max(4, (data[idx] / 255) * maxH);
             this.ctx.fillRect(startX + i * (bw + gap), H - 4 - v, bw, v);
@@ -130,7 +128,6 @@ class MiniViz {
         const W = this.W, H = this.H;
         const mid = H / 2;
 
-        // 8 сегментов из данных
         const N = 10;
         const step = Math.max(1, Math.floor(data.length / N));
         const pts = [];
@@ -216,7 +213,7 @@ async function init() {
             renderSidebarStats();
         }
     };
-    
+
     audioEngine.onPlayCounted = () => {
         renderSidebarRecent();
         renderSidebarStats();
@@ -294,7 +291,6 @@ async function init() {
 
     backgroundSystem.start();
 
-    // запуск глобуса на главной (только если не в эко)
     setTimeout(() => {
         if (isEcoMode) return;
         const g = ensureGlobe();
@@ -387,8 +383,6 @@ function formatBytes(bytes) {
     if (bytes < 1024 * 1024 * 1024) return (bytes / 1024 / 1024).toFixed(1) + ' МБ';
     return (bytes / 1024 / 1024 / 1024).toFixed(2) + ' ГБ';
 }
-
-// ===== SIDEBAR: недавнее / статистика / плейлисты =====
 
 function _relativeTime(ts) {
     if (!ts) return '';
@@ -531,8 +525,6 @@ function renderSidebarAll() {
 window.renderSidebarAll = renderSidebarAll;
 window.renderSidebarPlaylists = renderSidebarPlaylists;
 
-// ===== BOTTOM NAV (mbox mode) =====
-
 function applyNavMode(mode) {
     const m = (mode === 'mbox') ? 'mbox' : 'classic';
     document.body.classList.toggle('nav-mode-mbox', m === 'mbox');
@@ -542,7 +534,6 @@ function applyNavMode(mode) {
         b.classList.toggle('active', b.dataset.value === m);
     });
 
-    // док: если классика — спрятан и inert; если mbox — покажем на пару секунд
     const nav = document.getElementById('bottomNav');
     if (nav) {
         if (m === 'mbox') {
@@ -553,7 +544,6 @@ function applyNavMode(mode) {
         }
     }
 
-    // после смены layout — пересобрать глобус и перепозиционировать док
     if (window.globeView) {
         setTimeout(() => {
             try { window.globeView.resize(); } catch (e) {}
@@ -572,7 +562,6 @@ function positionBottomNav() {
     const stage = document.getElementById('stageColumn');
     const homePage = document.getElementById('page-home');
 
-    // если на главной и stage виден — центрируем под глобусом
     if (stage && homePage && homePage.classList.contains('active')) {
         const r = stage.getBoundingClientRect();
         if (r.width > 0) {
@@ -581,7 +570,6 @@ function positionBottomNav() {
         }
     }
 
-    // иначе — центр вьюпорта
     nav.style.left = '50%';
 }
 window.positionBottomNav = positionBottomNav;
@@ -634,18 +622,14 @@ function setupBottomNav() {
         scheduleHide(400);
     });
 
-    // при старте в mbox-режиме — показываем на 2.5 сек и потом прячем
     if (document.body.classList.contains('nav-mode-mbox')) {
         show();
         scheduleHide(2500);
     } else {
-        // по умолчанию (классика) — док спрятан и inert
         setInert(true);
     }
 }
 window.setupBottomNav = setupBottomNav;
-
-// ===== GLOBAL SEARCH (topbar + Ctrl+K) =====
 
 function setupGlobalSearch() {
     const input     = document.getElementById('globalSearchInput');
@@ -673,7 +657,6 @@ function setupGlobalSearch() {
         closeDropdown();
     };
 
-    // ---------- рендер результатов ----------
     const renderResults = (query) => {
         const q = query.trim().toLowerCase();
         if (!q) { closeDropdown(); return; }
@@ -725,7 +708,6 @@ function setupGlobalSearch() {
         dropdown.innerHTML = html.join('');
         openDropdown();
 
-        // клики по строкам
         dropdown.querySelectorAll('.sr-item').forEach(el => {
             el.addEventListener('mouseenter', () => {
                 dropdown.querySelectorAll('.sr-item').forEach(x => x.classList.remove('is-active'));
@@ -741,7 +723,6 @@ function setupGlobalSearch() {
         });
     };
 
-    // ---------- подсветка совпадения ----------
     const _hl = (text, query) => {
         const safe = escapeHtml(text || '');
         if (!query) return safe;
@@ -755,7 +736,6 @@ function setupGlobalSearch() {
         return `${before}<mark>${match}</mark>${after}`;
     };
 
-    // ---------- воспроизведение по id ----------
     const playTrackById = (trackId) => {
         if (!audioEngine) return;
         const idx = audioEngine.playlist.findIndex(t => t.id === trackId);
@@ -763,12 +743,10 @@ function setupGlobalSearch() {
         audioEngine.currentIndex = idx;
         audioEngine.loadCurrentTrack();
         audioEngine.play();
-        // переключаемся на главную
         const homeBtn = document.querySelector('.nav-item[data-page="home"]');
         if (homeBtn && !homeBtn.classList.contains('active')) homeBtn.click();
     };
 
-    // ---------- события ----------
     input.addEventListener('input', () => renderResults(input.value));
     input.addEventListener('focus', () => { if (input.value.trim()) renderResults(input.value); });
 
@@ -835,7 +813,6 @@ function setupGlobalSearch() {
         }
     });
 
-    // обновляем результаты при смене трека (вдруг обложка догрузилась)
     if (audioEngine) {
         const prevCb = audioEngine.onCoverLoaded;
         audioEngine.onCoverLoaded = (track) => {
@@ -896,8 +873,6 @@ function updateStageCover(track) {
 }
 window.updateStageCover = updateStageCover;
 
-// ===== CHARTS: топ 100 + авто-подборки =====
-
 function pluralPlays(n) {
     const m10 = n % 10, m100 = n % 100;
     if (m10 === 1 && m100 !== 11) return 'раз';
@@ -913,7 +888,6 @@ function getTopTracks(limit = 100) {
         .slice(0, limit);
 }
 
-// ===== REGION PAGE =====
 
 const REGION_ICONS = {
     0: '🌎',  // Северная Америка
@@ -936,7 +910,6 @@ function openRegionPage(regionIdx) {
         .filter(t => t.region === regionIdx)
         .sort((a, b) => (b.playCount || 0) - (a.playCount || 0));
 
-    // --- hero ---
     const avatar = document.getElementById('regionHeroAvatar');
     const name   = document.getElementById('regionHeroName');
     const stats  = document.getElementById('regionHeroStats');
@@ -961,7 +934,6 @@ function openRegionPage(regionIdx) {
         `;
     }
 
-    // --- actions ---
     const playAllBtn = document.getElementById('regionPlayAllBtn');
     const shuffleBtn = document.getElementById('regionShuffleBtn');
 
@@ -986,7 +958,6 @@ function openRegionPage(regionIdx) {
         closeRegionModal();
     });
 
-    // --- tracks list ---
     const listEl  = document.getElementById('regionTracks');
     const countEl = document.getElementById('regionTracksCount');
     if (countEl) countEl.textContent = totalTracks > 0 ? String(totalTracks) : '';
@@ -1050,9 +1021,6 @@ function closeRegionModal() {
 window.openRegionPage = openRegionPage;
 window.closeRegionModal = closeRegionModal;
 
-
-// ===== ARTIST PAGE =====
-
 function openArtistPage(artistName) {
     if (!artistName) return;
     const modal = document.getElementById('artistModal');
@@ -1066,14 +1034,12 @@ function openArtistPage(artistName) {
         return a === c || a.includes(c) || c.includes(a.split(',')[0].trim());
     });
 
-    // сортируем по playCount, потом по createdAt
     allTracks.sort((a, b) => {
         const dp = (b.playCount || 0) - (a.playCount || 0);
         if (dp !== 0) return dp;
         return (b.createdAt || 0) - (a.createdAt || 0);
     });
 
-    // --- hero ---
     const avatar = document.getElementById('artistHeroAvatar');
     const name   = document.getElementById('artistHeroName');
     const stats  = document.getElementById('artistHeroStats');
@@ -1098,11 +1064,9 @@ function openArtistPage(artistName) {
         `;
     }
 
-    // --- actions ---
     const playAllBtn = document.getElementById('artistPlayAllBtn');
     const shuffleBtn = document.getElementById('artistShuffleBtn');
 
-    // очищаем предыдущие обработчики
     const newPlayAll = playAllBtn.cloneNode(true);
     playAllBtn.parentElement.replaceChild(newPlayAll, playAllBtn);
     newPlayAll.addEventListener('click', () => {
@@ -1124,7 +1088,6 @@ function openArtistPage(artistName) {
         closeArtistModal();
     });
 
-    // --- tracks list ---
     const listEl = document.getElementById('artistTracks');
     const countEl = document.getElementById('artistTracksCount');
     if (countEl) countEl.textContent = uniqueTracks > 0 ? String(uniqueTracks) : '';
@@ -1196,7 +1159,6 @@ function buildChartPlaylists() {
     const lib = window.audioEngine?.playlist || [];
     const lists = [];
 
-    // Лидеры
     const topPlayed = [...lib]
         .filter(t => (t.playCount || 0) > 0)
         .sort((a, b) => (b.playCount || 0) - (a.playCount || 0))
@@ -1205,7 +1167,6 @@ function buildChartPlaylists() {
         lists.push({ key: 'leader', icon: '🔥', name: 'Лидеры', desc: 'Самые прослушиваемые', tracks: topPlayed });
     }
 
-    // Свежак
     const fresh = [...lib]
         .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
         .slice(0, 20);
@@ -1213,7 +1174,6 @@ function buildChartPlaylists() {
         lists.push({ key: 'fresh', icon: '✨', name: 'Свежак', desc: 'Недавно добавленные', tracks: fresh });
     }
 
-    // Нетронутое
     const unheard = lib
         .filter(t => (t.playCount || 0) === 0)
         .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
@@ -1222,7 +1182,6 @@ function buildChartPlaylists() {
         lists.push({ key: 'unheard', icon: '🔍', name: 'Нетронутое', desc: 'Ещё не слушали', tracks: unheard });
     }
 
-    // Микс дня (детерминированный по дате — не прыгает при обновлении)
     if (lib.length > 0) {
         const daySeed = new Date().toISOString().slice(0, 10);
         const pool = [...lib];
@@ -1490,8 +1449,6 @@ function playPlaylist(playlist) {
 }
 window.playPlaylist = playPlaylist;
 
-// ===== STAGE MODE (глобус ↔ обложка) — глобально =====
-
 let _stageCoverBeforeEco = null;
 
 function applyStageMode(showCover, opts = {}) {
@@ -1505,7 +1462,6 @@ function applyStageMode(showCover, opts = {}) {
 
     stageColumn.classList.toggle('show-cover', showCover);
 
-    // label
     if (stageLabel) {
         const newText = showCover ? 'Мир' : 'Обложка';
         if (opts.animate === false || !stageLabel.textContent.trim()) {
@@ -1522,10 +1478,8 @@ function applyStageMode(showCover, opts = {}) {
         }
     }
 
-    // скрываем hint после первого переключения
     stageToggle?.classList.remove('hint-visible');
 
-    // глобус
     if (showCover) {
         window.globeView?.stop();
     } else {
@@ -1552,7 +1506,6 @@ function toggleEcoMode(enabled) {
         visualizer.stop();
         backgroundSystem.stop();
 
-        // принудительно ставим обложку (глобус слишком тяжёлый для эко)
         const stageColumn = document.getElementById('stageColumn');
         if (stageColumn) {
             _stageCoverBeforeEco = stageColumn.classList.contains('show-cover');
@@ -1564,7 +1517,6 @@ function toggleEcoMode(enabled) {
 
         if (window.miniViz) window.miniViz._start();
 
-        // возвращаем тот режим, что был до эко
         if (_stageCoverBeforeEco === false) {
             applyStageMode(false, { animate: false });
         }
@@ -2713,10 +2665,8 @@ function setupEvents() {
     
     setupGlobalSearch();
 
-        // нижний док
     setupBottomNav();
 
-    // тумблер режима навигации
     document.querySelectorAll('#navModeRadio .radio-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             document.querySelectorAll('#navModeRadio .radio-btn').forEach(b => b.classList.remove('active'));
@@ -2745,7 +2695,6 @@ function setupEvents() {
         item.addEventListener('click', (e) => {
             if (item.classList.contains('active')) return;
 
-            // ripple
             if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
                 const rect = item.getBoundingClientRect();
                 const ripple = document.createElement('span');
@@ -2794,10 +2743,8 @@ function setupEvents() {
                     buildChartPlaylists();
                 }
 
-                // пересчёт позиции нижнего дока под текущую страницу
                 setTimeout(positionBottomNav, 100);
 
-                // Запускаем FLIP-анимацию мини-плеера, пока экран закрыт квадратами
                 if (window.miniPlayer) {
                     window.miniPlayer.applyTransition(targetPage);
                 }
@@ -2816,7 +2763,6 @@ function setupEvents() {
         document.getElementById('playBtn').click();
     });
 
-        // клик по артисту в плеере и в stage → страница артиста
     ['trackArtist', 'stageMetaArtist'].forEach(id => {
         const el = document.getElementById(id);
         if (!el) return;
@@ -3065,7 +3011,6 @@ function setupEvents() {
             }).observe(lyricsModal, { attributes: true, attributeFilter: ['class'] });
         }
 
-    // artist modal: закрытие
     const artistModal = document.getElementById('artistModal');
     if (artistModal) {
         document.getElementById('artistModalClose')?.addEventListener('click', closeArtistModal);
@@ -3074,7 +3019,6 @@ function setupEvents() {
         });
     }
 
-    // region modal: закрытие
     const regionModal = document.getElementById('regionModal');
     if (regionModal) {
         document.getElementById('regionModalClose')?.addEventListener('click', closeRegionModal);
@@ -3107,7 +3051,6 @@ function setupEvents() {
         });
     })();
 
-        // переключатель stage: глобус ↔ обложка
     const stageToggle = document.getElementById('stageToggle');
     const stageColumn = document.getElementById('stageColumn');
 
@@ -3117,7 +3060,6 @@ function setupEvents() {
         applyStageMode(!currentlyCover, { animate: true });
     });
 
-    // пульс-подсказка: показать на 5 секунд после загрузки
     if (stageToggle && stageColumn) {
         stageToggle.classList.add('hint-visible');
         setTimeout(() => {

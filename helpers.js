@@ -3,15 +3,12 @@ function guessRegionFromArtist(artist) {
     const key = String(artist).toLowerCase().trim();
     const lookup = window.MBOX_ARTIST_REGIONS || {};
 
-    // точное совпадение — сравнение без регистра
     const lowerLookup = {};
     for (const [name, idx] of Object.entries(lookup)) {
         lowerLookup[name.toLowerCase()] = idx;
     }
     if (lowerLookup[key] !== undefined) return lowerLookup[key];
 
-    // частичное совпадение — если artist содержит имя из базы
-    // (важно для случаев "GONE.Fludd, bbno$", "Yung Gravy & bbno$")
     for (const [lowerName, idx] of Object.entries(lowerLookup)) {
         if (key.includes(lowerName)) return idx;
     }
@@ -323,9 +320,9 @@ function extractCoverPalette(coverUrl) {
                     const max = Math.max(r, g, b);
                     const min = Math.min(r, g, b);
                     const l = (max + min) / 255 / 2;
-                    if (l < 0.15 || l > 0.9) continue;   // skip near-black/white
+                    if (l < 0.15 || l > 0.9) continue;
                     const s = max === 0 ? 0 : (max - min) / max;
-                    if (s < 0.18) continue;              // skip greys
+                    if (s < 0.18) continue;
 
                     const key = `${(r >> 5)}-${(g >> 5)}-${(b >> 5)}`;
                     if (!buckets[key]) buckets[key] = { n: 0, r: 0, g: 0, b: 0, s: 0 };
@@ -393,7 +390,6 @@ function animateNumber(el, from, to, duration = 700) {
         return;
     }
 
-    // Отменяем предыдущую анимацию на этом элементе
     if (el._numRaf) cancelAnimationFrame(el._numRaf);
 
     const start = performance.now();

@@ -3286,8 +3286,6 @@ body.eco-mode .recent-card {
     font-variant-numeric: tabular-nums;
 }
 
-/* ===== MINI PLAYER — вертикальная копия большого ===== */
-
 .mini-player {
     position: fixed;
     left: 20px;
@@ -3325,7 +3323,6 @@ body.eco-mode .recent-card {
     opacity: 0.55;
 }
 
-/* -------- обложка -------- */
 .mini-cover {
     width: 100%;
     aspect-ratio: 1;
@@ -3354,7 +3351,6 @@ body.eco-mode .recent-card {
     font-weight: 700;
 }
 
-/* -------- название и артист -------- */
 .mini-info {
     min-width: 0;
     text-align: center;
@@ -3376,7 +3372,6 @@ body.eco-mode .recent-card {
     text-overflow: ellipsis;
 }
 
-/* -------- прогресс -------- */
 .mini-progress {
     height: 3px;
     background: var(--ink-line);
@@ -3402,7 +3397,6 @@ body.eco-mode .recent-card {
     margin-top: -4px;
 }
 
-/* -------- кнопки -------- */
 .mini-controls {
     display: flex;
     align-items: center;
@@ -3456,7 +3450,6 @@ body.eco-mode .recent-card {
     background: rgba(255, 212, 0, 0.08);
 }
 
-/* -------- громкость -------- */
 .mini-volume {
     display: flex;
     align-items: center;
@@ -3924,8 +3917,6 @@ body.is-electron [contenteditable] {
     user-select: text;
 }
 
-/* ===== v0.50 LAYOUT — TOPBAR ===== */
-
 .topbar {
     display: grid;
     grid-template-columns: 1fr auto 1fr;
@@ -4154,7 +4145,6 @@ body.is-electron [contenteditable] {
     color: var(--ink);
 }
 
-/* выпадашка поиска (пока скрыта, наполним в фазе B) */
 .topbar-search-dropdown {
     position: absolute;
     top: calc(100% + 8px);
@@ -4170,8 +4160,6 @@ body.is-electron [contenteditable] {
 }
 .topbar-search-dropdown[hidden] { display: none; }
 
-/* A2 - этап*/
-
 #page-home { padding: 0; }
 
 .home-layout {
@@ -4182,7 +4170,6 @@ body.is-electron [contenteditable] {
     overflow: hidden;
 }
 
-/* левая колонка — плеер */
 .player-column {
     padding: 32px 24px 24px;
     border-right: 1px solid var(--ink-line);
@@ -4224,7 +4211,6 @@ body.is-electron [contenteditable] {
 .player-column .control-btn.play-btn { width: 56px; height: 56px; border-radius: 16px; }
 .player-column .visualizer { margin: 6px 0 0; height: 40px; }
 
-/* центральная колонка — stage */
 .stage-column {
     display: flex;
     align-items: center;
@@ -4246,7 +4232,6 @@ body.is-electron [contenteditable] {
     display: block;
 }
 
-/* правая колонка — sidebar */
 .sidebar-column {
     padding: 24px 20px;
     border-left: 1px solid var(--ink-line);
@@ -4293,7 +4278,6 @@ body.is-electron [contenteditable] {
     text-transform: uppercase;
 }
 
-/* рекомендации внутри sidebar */
 .sidebar-column .rec-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -4312,7 +4296,6 @@ body.is-electron [contenteditable] {
 
 .home-layout { grid-template-columns: 560px 1fr 360px; }
 
-/* адаптив */
 @media (max-width: 1200px) {
     .home-layout { grid-template-columns: 280px 1fr 320px; }
 }
@@ -4343,9 +4326,6 @@ body.is-electron [contenteditable] {
 
 body.eco-mode .stage-column { filter: none; }
 
-/* (очередь сверху, плеер снизу)*/
-
-/* колонка — вертикальный стек */
 .player-column {
     display: flex;
     flex-direction: column;
@@ -4356,7 +4336,6 @@ body.eco-mode .stage-column { filter: none; }
     gap: 12px;
 }
 
-/* очередь — фиксированная высота, прижата к топбару */
 .player-queue {
     flex-shrink: 0;
     width: 100%;
@@ -4385,7 +4364,6 @@ body.eco-mode .stage-column { filter: none; }
     );
 }
 
-/* плеер — растягивается на всё оставшееся место, стоит на плашке */
 .player-body {
     flex: 1;
     min-height: 0;
@@ -4399,7 +4377,6 @@ body.eco-mode .stage-column { filter: none; }
     overflow: hidden;
 }
 
-/* -------- обложка + метаданные: занимают всё свободное место -------- */
 .player-body .track-info {
     flex: 1;
     min-height: 0;
@@ -4452,7 +4429,6 @@ body.eco-mode .stage-column { filter: none; }
     padding: 6px 14px;
 }
 
-/* -------- нижний блок: прогресс → кнопки → громкость -------- */
 .player-body .progress-container {
     width: 100%;
     margin: 0;
@@ -4484,7 +4460,6 @@ body.eco-mode .stage-column { filter: none; }
 }
 .player-body .volume-slider { width: 120px; }
 
-/* адаптив */
 @media (max-width: 1200px) {
     .home-layout { grid-template-columns: 480px 1fr 320px; }
 }
@@ -4497,8 +4472,6 @@ body.eco-mode .stage-column { filter: none; }
     .home-layout { grid-template-columns: 1fr; }
     .player-queue .track-queue { height: 120px; }
 }
-
-/* ===== v0.50 LAYOUT — STAGE (глобус ↔ обложка) ===== */
 
 .stage-column {
     position: relative;
@@ -4521,14 +4494,12 @@ body.eco-mode .stage-column { filter: none; }
     transition: opacity 0.4s ease, transform 0.5s cubic-bezier(0.7, 0, 0.2, 1);
 }
 
-/* по умолчанию — глобус */
 .stage-view-globe {
     opacity: 1;
     pointer-events: auto;
     transform: scale(1);
 }
 
-/* режим "show-cover" переключает видимость */
 .stage-column.show-cover .stage-view-globe {
     opacity: 0;
     pointer-events: none;
@@ -4540,7 +4511,6 @@ body.eco-mode .stage-column { filter: none; }
     transform: scale(1);
 }
 
-/* глобус */
 .stage-view-globe .globe-wrap {
     position: absolute;
     inset: 0;
@@ -4554,7 +4524,6 @@ body.eco-mode .stage-column { filter: none; }
 }
 .stage-view-globe #globeCanvas.dragging { cursor: grabbing; }
 
-/* обложка */
 .stage-view-cover {
     flex-direction: column;
     gap: 18px;
@@ -4618,7 +4587,6 @@ body.eco-mode .stage-column { filter: none; }
     max-width: 100%;
 }
 
-/* кнопка переключения — теперь над глобусом */
 .stage-toggle {
     position: absolute;
     top: 90px;
@@ -4652,7 +4620,6 @@ body.eco-mode .stage-column { filter: none; }
     pointer-events: none;
 }
 
-/* показываем при наведении на stage */
 .stage-column:hover .stage-toggle,
 .stage-toggle:focus-visible,
 .stage-toggle.hint-visible {
@@ -4676,13 +4643,11 @@ body.eco-mode .stage-column { filter: none; }
 .stage-column.show-cover .stage-toggle .stage-toggle-icon-globe { display: none; }
 .stage-column.show-cover .stage-toggle .stage-toggle-icon-cover { display: block; }
 
-/* активная подсветка: когда глобус — жёлтая, когда обложка — серо-жёлтая точка */
 .stage-column:not(.show-cover) .stage-toggle {
     color: var(--y);
     border-color: var(--y);
 }
 
-/* --- точки-индикатор режима --- */
 .stage-toggle-dots {
     display: inline-flex;
     align-items: center;
@@ -4708,7 +4673,6 @@ body.eco-mode .stage-column { filter: none; }
     transform: scale(1.2);
 }
 
-/* --- плавная смена текста --- */
 .stage-toggle-label-wrap {
     position: relative;
     display: inline-block;
@@ -4733,7 +4697,6 @@ body.eco-mode .stage-column { filter: none; }
     transition: none;
 }
 
-/* --- пульс-подсказка (первые 5 сек) --- */
 @keyframes stageHintPulse {
     0%, 100% {
         box-shadow:
@@ -4781,19 +4744,14 @@ body.eco-mode .stage-toggle:hover {
     box-shadow: none;
 }
 
-/* скрытая play-кнопка (используется через mainPlayBtn.click()) */
 #playBtn { display: none !important; }
 
-/* старые стили для world-страницы больше не нужны */
 .world-content { display: none; }
-
-/* ===== v0.50 LAYOUT — SIDEBAR ===== */
 
 .sidebar-column {
     padding: 24px 18px;
 }
 
-/* -------- Недавнее -------- */
 .sidebar-recent {
     display: flex;
     flex-direction: column;
@@ -4853,7 +4811,6 @@ body.eco-mode .stage-toggle:hover {
     flex-shrink: 0;
 }
 
-/* -------- Статистика -------- */
 .sidebar-stats {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -4884,7 +4841,6 @@ body.eco-mode .stage-toggle:hover {
     font-weight: 600;
 }
 
-/* -------- Плейлисты -------- */
 .sidebar-playlists {
     display: flex;
     flex-direction: column;
@@ -4928,7 +4884,6 @@ body.eco-mode .stage-toggle:hover {
     font-family: 'JetBrains Mono', monospace;
 }
 
-/* -------- Пустое состояние -------- */
 .sidebar-empty {
     padding: 24px 12px;
     text-align: center;
@@ -4942,8 +4897,6 @@ body.eco-mode .stage-toggle:hover {
     text-transform: uppercase;
     line-height: 1.6;
 }
-
-/* ===== SIDEBAR: сворачивание блоков ===== */
 
 .sidebar-block-toggle {
     width: 100%;
@@ -4990,15 +4943,12 @@ body.eco-mode .stage-toggle:hover {
 }
 .sidebar-block-toggle:hover .sidebar-block-chevron { opacity: 1; }
 
-/* закрытое состояние: стрелка вправо, содержимое спрятано */
 .sidebar-block.is-collapsed .sidebar-block-chevron {
     transform: rotate(-90deg);
 }
 .sidebar-block[data-collapsible].is-collapsed > *:not(.sidebar-block-title) {
     display: none;
 }
-
-/* ===== v0.50 — TOPBAR SEARCH DROPDOWN ===== */
 
 .topbar-search-dropdown {
     position: absolute;
@@ -5118,7 +5068,6 @@ body.eco-mode .stage-toggle:hover {
 .sr-item:hover .sr-play,
 .sr-item.is-active .sr-play { opacity: 1; }
 
-/* статус-сообщения */
 .sr-status {
     padding: 24px 16px;
     text-align: center;
@@ -5129,7 +5078,6 @@ body.eco-mode .stage-toggle:hover {
 }
 .sr-status strong { color: var(--y); font-weight: 700; }
 
-/* шапка дропдауна */
 .sr-header {
     padding: 8px 12px 4px;
     font-size: 10px;
@@ -5146,13 +5094,11 @@ body.eco-mode .stage-toggle:hover {
     margin: 4px 8px;
 }
 
-/* Ctrl+K подсветка активного поиска */
 .topbar-search.is-focused {
     border-color: var(--y);
     background: var(--ink);
 }
 
-/* blur подложка для глобуса под дропдауном */
 body.search-open .stage-column::after {
     content: '';
     position: absolute;
@@ -5172,8 +5118,6 @@ body.search-open .stage-column::after {
 
 body.eco-mode .topbar-search-dropdown { box-shadow: none; }
 body.eco-mode body.search-open .stage-column::after { backdrop-filter: none; }
-
-/* ===== v0.50 — CHARTS PAGE ===== */
 
 .charts-content {
     max-width: 1400px;
@@ -5352,8 +5296,6 @@ body.eco-mode body.search-open .stage-column::after { backdrop-filter: none; }
     .chart-playlist-card { min-width: 260px; flex-shrink: 0; }
 }
 
-/* ===== v0.50 — ARTIST MODAL ===== */
-
 .artist-modal {
     display: none;
     position: fixed;
@@ -5408,7 +5350,6 @@ body.eco-mode body.search-open .stage-column::after { backdrop-filter: none; }
     border-color: var(--y);
 }
 
-/* hero */
 .artist-hero {
     display: flex;
     align-items: center;
@@ -5514,7 +5455,6 @@ body.eco-mode body.search-open .stage-column::after { backdrop-filter: none; }
     transform: translateY(-1px);
 }
 
-/* tracks */
 .artist-tracks-header {
     display: flex;
     align-items: center;
@@ -5644,8 +5584,6 @@ body.eco-mode .artist-modal {
     .artist-track-num { display: none; }
 }
 
-/* ===== v0.50 — BOTTOM NAV (mbox mode) ===== */
-
 .bottom-nav {
     display: none;
     position: fixed;
@@ -5664,7 +5602,6 @@ body.nav-mode-mbox .bottom-nav {
     pointer-events: auto;
 }
 
-/* без подложки — просто ряд кнопок */
 .bottom-nav-inner {
     display: flex;
     align-items: center;
@@ -5676,7 +5613,6 @@ body.nav-mode-mbox .bottom-nav {
     box-shadow: none;
 }
 
-/* кнопки-плашки */
 .bn-item {
     height: 48px !important;
     padding: 0 22px !important;
@@ -5712,7 +5648,6 @@ body.nav-mode-mbox .bottom-nav {
     color: var(--ink) !important;
 }
 
-/* круглая кнопка профиля — чуть больше остальных */
 .bn-circle {
     width: 72px !important;
     height: 72px !important;
@@ -5742,7 +5677,6 @@ body.nav-mode-mbox .bottom-nav {
     color: var(--y);
 }
 
-/* ---- stagger-анимация: профиль первый, потом соседи, потом крайние ---- */
 .bottom-nav .bn-item {
     transform: translateY(36px) scale(0.94);
     transition:
@@ -5756,25 +5690,21 @@ body.nav-mode-mbox .bottom-nav {
     transform: translateY(0) scale(1);
 }
 
-/* при показе — стаггер от центра (профиль → соседи → крайние) */
 .bottom-nav.visible .bn-item:nth-child(1) { transition-delay: 0.18s; }
 .bottom-nav.visible .bn-item:nth-child(2) { transition-delay: 0.10s; }
 .bottom-nav.visible .bn-item:nth-child(3) { transition-delay: 0.00s; }
 .bottom-nav.visible .bn-item:nth-child(4) { transition-delay: 0.10s; }
 .bottom-nav.visible .bn-item:nth-child(5) { transition-delay: 0.18s; }
 
-/* при скрытии — всё вместе, быстро */
 .bottom-nav:not(.visible) .bn-item {
     transition-delay: 0s !important;
     transition-duration: 0.22s, 0.28s, 0.2s, 0.2s;
 }
 
-/* в mbox-режиме скрываем верхнюю навигацию и аватар/шестерёнку */
 body.nav-mode-mbox .topbar-nav { display: none !important; }
 body.nav-mode-mbox .topbar-right .topbar-icon-btn[data-page="settings"] { display: none !important; }
 body.nav-mode-mbox .topbar-avatar { display: none !important; }
 
-/* адаптив */
 @media (max-width: 720px) {
     .bn-item {
         height: 42px !important;
@@ -5785,9 +5715,6 @@ body.nav-mode-mbox .topbar-avatar { display: none !important; }
     .bn-circle .profile-avatar { width: 38px; height: 38px; font-size: 15px; }
 }
 
-/* ===== v0.50 — TOPBAR NAV ANIMATIONS ===== */
-
-/* базовое состояние кнопок */
 .topbar .nav-item {
     position: relative;
     overflow: visible;
@@ -5799,7 +5726,6 @@ body.nav-mode-mbox .topbar-avatar { display: none !important; }
         box-shadow 0.3s ease !important;
 }
 
-/* ---- 1. HOVER на неактивной ---- */
 .topbar .nav-item:not(.active):hover {
     background: var(--ink) !important;
     color: var(--text-primary) !important;
@@ -5810,7 +5736,6 @@ body.nav-mode-mbox .topbar-avatar { display: none !important; }
         inset 0 0 0 1px rgba(255, 212, 0, 0.08) !important;
 }
 
-/* мягкое свечение под текстом при hover */
 .topbar .nav-item:not(.active)::before {
     content: '';
     position: absolute;
@@ -5832,10 +5757,8 @@ body.nav-mode-mbox .topbar-avatar { display: none !important; }
     opacity: 0.7;
 }
 
-/* отключаем старые псевдоэлементы чтобы не конфликтовало */
 .topbar .nav-item::after { display: none !important; }
 
-/* ---- 2. АКТИВНАЯ ---- */
 .topbar .nav-item.active {
     background: var(--y) !important;
     color: var(--ink) !important;
@@ -5847,7 +5770,6 @@ body.nav-mode-mbox .topbar-avatar { display: none !important; }
     animation: navActivePulse 3.2s ease-in-out infinite;
 }
 
-/* мягкая "дыхательная" пульсация активной кнопки — заметна, но не бесит */
 @keyframes navActivePulse {
     0%, 100% {
         box-shadow:
@@ -5862,7 +5784,6 @@ body.nav-mode-mbox .topbar-avatar { display: none !important; }
 }
 
 .topbar .nav-item.active:hover {
-    /* при hover активная не "всплывает", но немного ярче */
     transform: translateY(-1px) !important;
     box-shadow:
         0 6px 20px rgba(255, 212, 0, 0.3),
@@ -5870,7 +5791,6 @@ body.nav-mode-mbox .topbar-avatar { display: none !important; }
     animation: none;
 }
 
-/* ---- 3. ПЕРЕКЛЮЧЕНИЕ (bounce-анимация при активации) ---- */
 .topbar .nav-item.nav-pop {
     animation: navPop 0.45s cubic-bezier(0.34, 1.6, 0.5, 1);
 }
@@ -5881,7 +5801,6 @@ body.nav-mode-mbox .topbar-avatar { display: none !important; }
     100% { transform: scale(1); }
 }
 
-/* ---- 4. RIPPLE при клике ---- */
 .topbar .nav-item.nav-ripple {
     position: relative;
     overflow: hidden;
@@ -5904,7 +5823,6 @@ body.nav-mode-mbox .topbar-avatar { display: none !important; }
     }
 }
 
-/* ---- отключаем всё в эко-режиме и при reduced-motion ---- */
 body.eco-mode .topbar .nav-item.active { animation: none; }
 body.eco-mode .topbar .nav-item:not(.active)::before { transition: none; }
 body.eco-mode .topbar .nav-item:not(.active):hover {
@@ -5923,8 +5841,6 @@ body.eco-mode .topbar .nav-item:not(.active):hover {
     }
     .topbar .nav-item .nav-ripple-el { display: none; }
 }
-
-/* ===== v0.50 — PLAYER SHRINK TO MINI ===== */
 
 .player-column {
     transform-origin: bottom left;
