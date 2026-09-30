@@ -451,10 +451,11 @@ class FileUploadSystem {
                 .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
                 .slice(0, 8);
 
-            recent.forEach((track) => {
+            recent.forEach((track, rowIdx) => {
                 const actualIndex = this.audioEngine.playlist.indexOf(track);
                 const card = document.createElement('div');
                 card.className = 'recent-card glass';
+                card.style.setProperty('--i', rowIdx);
                 const coverUrl = this.audioEngine.ensureCoverUrl(track);
                 const coverStyle = track.coverUrl
                     ? `style="background-image:url('${track.coverUrl}')"`
@@ -483,7 +484,9 @@ class FileUploadSystem {
         }
 
         const likedCount = document.getElementById('likedCount');
-        if (likedCount) likedCount.textContent = `${this.audioEngine.playlist.length} треков`;
+        if (likedCount) {
+            updateCounter(likedCount, this.audioEngine.playlist.length, 'треков');
+        }
         const uploaded = document.getElementById('uploadedTracksList');
         const emptyEl = document.getElementById('libraryEmpty');
         const countEl = document.getElementById('libraryCount');
@@ -504,9 +507,10 @@ class FileUploadSystem {
 
             if (emptyEl) emptyEl.hidden = !(this._query && rows.length === 0);
 
-            rows.forEach(({ track, originalIndex }) => {
+            rows.forEach(({ track, originalIndex }, rowIdx) => {
                 const item = document.createElement('div');
                 item.className = 'track-list-item glass';
+                item.style.setProperty('--i', rowIdx);
                 if (this._selectionMode) item.classList.add('selection-mode');
                 if (this._selected.has(track.id)) item.classList.add('selected');
                 const coverUrl = this.audioEngine.ensureCoverUrl(track);
@@ -563,7 +567,8 @@ class FileUploadSystem {
         const playlistCount = document.getElementById('playlistCount');
         if (playlistCount && window.playlistManager) {
             const n = window.playlistManager.getPlaylistCount();
-            playlistCount.textContent = `${n} ${n === 1 ? 'плейлист' : (n >= 2 && n <= 4 ? 'плейлиста' : 'плейлистов')}`;
+            const word = n === 1 ? 'плейлист' : (n >= 2 && n <= 4 ? 'плейлиста' : 'плейлистов');
+            updateCounter(playlistCount, n, word);
         }
 
     if (window.trackQueue) window.trackQueue.render();

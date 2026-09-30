@@ -46,15 +46,17 @@ class TrackStorage {
             try {
                 const store = this._store('readwrite');
                 const record = {
-                    id:          track.id,
-                    title:       track.title,
-                    artist:      track.artist,
-                    region:      track.region ?? -1,
-                    duration:    track.duration || 0,
-                    fileName:    track.fileName || '',
-                    createdAt:   track.createdAt || Date.now(),
-                    blob:        track.blob,
-                    coverBlob:   track.coverBlob || null
+                    id:           track.id,
+                    title:        track.title,
+                    artist:       track.artist,
+                    region:       track.region ?? -1,
+                    duration:     track.duration || 0,
+                    fileName:     track.fileName || '',
+                    createdAt:    track.createdAt || Date.now(),
+                    blob:         track.blob,
+                    coverBlob:    track.coverBlob || null,
+                    playCount:    track.playCount || 0,
+                    lastPlayedAt: track.lastPlayedAt || null
                 };
                 const req = store.put(record);
                 req.onsuccess = () => resolve(true);
@@ -75,10 +77,12 @@ class TrackStorage {
                 getReq.onsuccess = () => {
                     const rec = getReq.result;
                     if (!rec) { resolve(false); return; }
-                    rec.region   = track.region   ?? rec.region;
-                    rec.title    = track.title    || rec.title;
-                    rec.artist   = track.artist   || rec.artist;
-                    rec.duration = track.duration || rec.duration;
+                    rec.region       = track.region       ?? rec.region;
+                    rec.title        = track.title        || rec.title;
+                    rec.artist       = track.artist       || rec.artist;
+                    rec.duration     = track.duration     || rec.duration;
+                    rec.playCount    = track.playCount    ?? rec.playCount    ?? 0;
+                    rec.lastPlayedAt = track.lastPlayedAt ?? rec.lastPlayedAt ?? null;
                     if (track.coverBlob !== undefined) rec.coverBlob = track.coverBlob;
                     const putReq = store.put(rec);
                     putReq.onsuccess = () => resolve(true);

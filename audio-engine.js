@@ -1,3 +1,29 @@
+function parseTrackFilename(name) {
+    let baseName = String(name || '').replace(/\.[^/.]+$/, '');
+
+    // срезаем ведущий номер: "01 - ", "01. ", "[01] ", "01_ ", "01– ", "01— "
+    baseName = baseName.replace(/^\s*[\[\(]?\d{1,3}[\]\)]?\s*[-._\u2013\u2014]\s*/, '');
+    baseName = baseName.trim();
+
+    let title  = baseName || 'Неизвестный трек';
+    let artist = 'Неизвестный исполнитель';
+
+    // первый разделитель " - " / " – " / " — "
+    const m = baseName.match(/^(.+?)\s+[-\u2013\u2014]\s+(.+)$/);
+    if (m && m[1].trim() && m[2].trim()) {
+        artist = m[1].trim();
+        title  = m[2].trim();
+    }
+
+    // если "artist" — это просто число, значит это на самом деле не артист
+    if (/^\d+$/.test(artist)) {
+        title  = `${artist} - ${title}`;
+        artist = 'Неизвестный исполнитель';
+    }
+
+    return { artist, title };
+}
+
 class AudioEngine {
     constructor() {
         this.audio = new Audio();
@@ -55,7 +81,10 @@ class AudioEngine {
             if (typeof this.onPause === 'function') this.onPause();
         });
 
-        this.audio.addEventListener('timeupdate', () => this.checkCrossfade());
+        this.audio.addEventListener('timeupdate', () => {
+            this.checkCrossfade();
+            this._maybeCountPlay();
+        });
 
         this.audio.addEventListener('play', () => {
             this.isPlaying = true;
@@ -268,6 +297,24 @@ class AudioEngine {
         this._normTimer = setTimeout(() => this._tickNorm(), 200);
     }
 
+    _maybeCountPlay() {
+        const track = this.playlist[this.currentIndex];
+        if (!track) return;
+        if (track._counted) return;
+        if (this.audio.currentTime < 20) return;
+
+        track._counted = true;
+        track.playCount = (track.playCount || 0) + 1;
+
+        if (this.storage) {
+            this.storage.updateMetadata(track).catch(() => {});
+        }
+        if (typeof this.onPlayCounted === 'function') {
+            try { this.onPlayCounted(track); } catch (e) {}
+        }
+    }
+
+
     _updateNormGain() {
         if (!this.normAnalyser || !this.normGain) return;
 
@@ -402,24 +449,7 @@ class AudioEngine {
 
         audioFiles.forEach((file, i) => {
             const url = URL.createObjectURL(file);
-                        let baseName = file.name.replace(/\.[^/.]+$/, '');
-            baseName = baseName.replace(/^\s*[\[\(]?\d{1,3}[\]\)]?\s*[-._]\s*/, '');
-
-            let title = baseName;
-            let artist = 'Неизвестный исполнитель';
-
-            if (baseName.includes(' - ')) {
-                const parts = baseName.split(' - ').map(s => s.trim()).filter(Boolean);
-                if (parts.length >= 2) {
-                    artist = parts[0];
-                    title  = parts.slice(1).join(' - ');
-                }
-            }
-
-            if (/^\d+$/.test(artist)) {
-                title  = `${artist} - ${title}`;
-                artist = 'Неизвестный исполнитель';
-            }
+            const { artist, title } = parseTrackFilename(file.name);
 
             const createdAt = Date.now() + i;
 
@@ -432,7 +462,9 @@ class AudioEngine {
                 fileName: file.name,
                 region: guessRegionFromArtist(artist),
                 blob: file,
-                createdAt
+                createdAt,
+                playCount: 0,
+                lastPlayedAt: null
             };
 
             this.playlist.push(track);
@@ -566,19 +598,43 @@ class AudioEngine {
         this.playlist = [];
 
         records.forEach(rec => {
-            this.playlist.push({
-                id:        rec.id,
-                title:     rec.title,
-                artist:    rec.artist,
-                url:       null,
-                duration:  rec.duration || 0,
-                fileName:  rec.fileName || '',
-                region:    rec.region ?? -1,
-                createdAt: rec.createdAt || Date.now(),
-                blob:      rec.blob,
-                coverBlob: rec.coverBlob || null,
-                coverUrl:  null
-            });
+            const parsed = rec.fileName ? parseTrackFilename(rec.fileName) : null;
+            const finalArtist = parsed ? parsed.artist : (rec.artist || 'Неизвестный исполнитель');
+            const finalTitle  = parsed ? parsed.title  : (rec.title  || 'Неизвестный трек');
+
+            let region = rec.region ?? -1;
+            let regionChanged = false;
+            if (region < 0 && typeof guessRegionFromArtist === 'function') {
+                const auto = guessRegionFromArtist(finalArtist);
+                if (auto >= 0) {
+                    region = auto;
+                    regionChanged = true;
+                }
+            }
+
+            const track = {
+                id:           rec.id,
+                title:        finalTitle,
+                artist:       finalArtist,
+                url:          null,
+                duration:     rec.duration || 0,
+                fileName:     rec.fileName || '',
+                region:       region,
+                createdAt:    rec.createdAt || Date.now(),
+                blob:         rec.blob,
+                coverBlob:    rec.coverBlob || null,
+                coverUrl:     null,
+                playCount:    rec.playCount || 0,
+                lastPlayedAt: rec.lastPlayedAt || null
+            };
+            this.playlist.push(track);
+
+            const artistTitleChanged = parsed && (parsed.artist !== rec.artist || parsed.title !== rec.title);
+            if (artistTitleChanged || regionChanged) {
+                if (this.storage) {
+                    this.storage.updateMetadata(track).catch(() => {});
+                }
+            }
         });
 
         this.currentIndex = 0;
@@ -596,6 +652,7 @@ class AudioEngine {
             const track = this.playlist[this.currentIndex];
             if (!track) return;
             this._isFadingOut = false;
+            track._counted = false;
 
         if (this.normGain && this.audioCtx) {
             const now = this.audioCtx.currentTime;

@@ -2,9 +2,18 @@ function guessRegionFromArtist(artist) {
     if (!artist) return -1;
     const key = String(artist).toLowerCase().trim();
     const lookup = window.MBOX_ARTIST_REGIONS || {};
-    if (lookup[key] !== undefined) return lookup[key];
+
+    // точное совпадение — сравнение без регистра
+    const lowerLookup = {};
     for (const [name, idx] of Object.entries(lookup)) {
-        if (key.includes(name)) return idx;
+        lowerLookup[name.toLowerCase()] = idx;
+    }
+    if (lowerLookup[key] !== undefined) return lowerLookup[key];
+
+    // частичное совпадение — если artist содержит имя из базы
+    // (важно для случаев "GONE.Fludd, bbno$", "Yung Gravy & bbno$")
+    for (const [lowerName, idx] of Object.entries(lowerLookup)) {
+        if (key.includes(lowerName)) return idx;
     }
     return -1;
 }
@@ -372,4 +381,56 @@ async function getCoverPalette(track) {
     const palette = await extractCoverPalette(url);
     if (palette) _paletteCache.set(track.id, palette);
     return palette;
+}
+
+function animateNumber(el, from, to, duration = 700) {
+    if (!el) return;
+    from = Number(from) || 0;
+    to   = Number(to)   || 0;
+
+    if (from === to) {
+        el.textContent = String(to);
+        return;
+    }
+
+    // Отменяем предыдущую анимацию на этом элементе
+    if (el._numRaf) cancelAnimationFrame(el._numRaf);
+
+    const start = performance.now();
+    const diff = to - from;
+
+    function step(now) {
+        const p = Math.min(1, (now - start) / duration);
+        const eased = 1 - Math.pow(1 - p, 3);   // ease-out cubic
+        const cur = Math.round(from + diff * eased);
+        el.textContent = String(cur);
+
+        if (p < 1) {
+            el._numRaf = requestAnimationFrame(step);
+        } else {
+            el._numRaf = null;
+            el.textContent = String(to);
+        }
+    }
+    el._numRaf = requestAnimationFrame(step);
+}
+
+function updateCounter(el, value, word) {
+    if (!el) return;
+    let numEl = el.querySelector('.tile-count-num');
+    let wordEl = el.querySelector('.tile-count-word');
+
+    if (!numEl) {
+        el.innerHTML = '';
+        numEl = document.createElement('span');
+        numEl.className = 'tile-count-num';
+        numEl.textContent = '0';
+        wordEl = document.createElement('span');
+        wordEl.className = 'tile-count-word';
+        el.append(numEl, document.createTextNode(' '), wordEl);
+    }
+
+    const prev = parseInt(numEl.textContent, 10) || 0;
+    animateNumber(numEl, prev, value);
+    wordEl.textContent = word;
 }

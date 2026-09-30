@@ -4,14 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>mbox</title> 
-<link rel="icon" type="image/png" sizes="32x32" href="favicon.jpg">
-<link rel="icon" type="image/png" sizes="192x192" href="mbox192.jpg">
-<link rel="apple-touch-icon" sizes="180x180" href="mbox180.jpg">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="mbox192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="mbox180.png">
 <meta name="theme-color" content="#FFD400">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Bebas+Neue&family=Playfair+Display:wght@400;700&family=Unbounded:wght@400;700&family=Caveat:wght@500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -98,108 +99,202 @@
 </div>
 <div class="cover-bg" id="coverBg" aria-hidden="true"></div>
 
-<header class="header">
-    <nav class="nav">
-        <div class="nav-item profile glass active" data-page="home">
-            <div class="profile-avatar">А</div>
-            <span>Главная</span>
+<header class="topbar">
+    <div class="topbar-left">
+        <button class="topbar-viz" id="topbarViz" type="button" title="Визуализатор (клик — сменить режим)" aria-label="Мини-визуализатор"></button>
+        <nav class="topbar-nav">
+            <button class="nav-item topbar-nav-item active" data-page="home">Главная</button>
+            <button class="nav-item topbar-nav-item" data-page="mymusic">Библиотека</button>
+            <button class="nav-item topbar-nav-item" data-page="charts">Чарты</button>
+        </nav>
+    </div>
+
+    <div class="topbar-center">
+        <div class="topbar-search" id="topbarSearch">
+            <svg class="topbar-search-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+            </svg>
+            <input type="text" id="globalSearchInput" placeholder="Поиск по трекам" autocomplete="off" spellcheck="false">
+            <kbd class="topbar-search-kbd">Ctrl K</kbd>
         </div>
-        <div class="nav-item glass" data-page="mymusic">Моя музыка</div>
-        <div class="nav-item glass" data-page="charts">Чарты</div>
-        <div class="nav-item glass" data-page="world">Мир</div>
-        <div class="nav-item glass" data-page="settings">Настройки</div>
-        <div class="nav-item glass" data-page="profile">Профиль</div>
-    </nav>
-    <div class="header-actions">
-        <button class="upload-btn glass" id="uploadBtnHeader"
-                title="Загрузить треки"
-                data-tip-title="Загрузить треки"
-                data-tip="Все аудиофайлы сохраняются локально в браузере.">
-            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg>
-            <span>Загрузить</span>
+        <div class="topbar-search-dropdown" id="topbarSearchDropdown" hidden></div>
+    </div>
+
+    <div class="topbar-right">
+        <button class="topbar-icon-btn" id="uploadBtnHeader" title="Загрузить треки" aria-label="Загрузить треки">
+            <svg viewBox="0 0 24 24"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg>
         </button>
-        <div class="eco-toggle-wrapper glass"
-            data-tip-title="Эко-режим"
-            data-tip="Отключает анимации, свечения и фоновую сетку. Экономит батарею и снижает нагрузку на CPU. На звук не влияет.">
-            <span class="eco-label">Эко режим</span>
-            <label class="eco-toggle">
-                <input type="checkbox" id="ecoToggle">
-                <span class="eco-slider"></span>
-            </label>
-        </div>
+
+        <label class="topbar-eco" title="Эко-режим">
+            <input type="checkbox" id="ecoToggle">
+            <svg class="topbar-eco-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M17 8C8 10 5.9 16.17 3.82 21.34l1.89.66.95-2.3c.48.17.98.3 1.34.3C19 20 22 3 22 3c-1 2-8 2.25-13 3.25S2 11.5 2 13.5s1.75 3.75 1.75 3.75C7 8 17 8 17 8z"/>
+            </svg>
+        </label>
+
+        <button class="nav-item topbar-icon-btn" data-page="settings" title="Настройки" aria-label="Настройки">
+            <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.48.48 0 0 0-.48-.41h-3.84a.48.48 0 0 0-.48.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.48.48 0 0 0-.59.22L2.74 8.87a.48.48 0 0 0 .12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.48-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.49.49 0 0 0-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+        </button>
+
+        <button class="nav-item topbar-avatar" data-page="profile" title="Профиль" aria-label="Профиль">
+            <span class="profile-avatar">А</span>
+        </button>
     </div>
 </header>
 
+<nav class="bottom-nav" id="bottomNav">
+    <div class="bottom-nav-inner">
+        <button class="nav-item bn-item bn-rect" data-page="home">Главная</button>
+        <button class="nav-item bn-item bn-rect" data-page="mymusic">Библиотека</button>
+        <button class="nav-item bn-item bn-circle" data-page="profile" aria-label="Профиль">
+            <span class="profile-avatar">А</span>
+        </button>
+        <button class="nav-item bn-item bn-rect" data-page="charts">Чарты</button>
+        <button class="nav-item bn-item bn-rect" data-page="settings">Настройки</button>
+    </div>
+</nav>
+
 <div class="page active" id="page-home">
-    <main class="main-content">
-        <section class="queue-section">
-            <div class="track-queue" id="trackQueue"></div>
-        </section>
-        <div class="sphere-container">
-            <div class="sphere" id="sphere"></div>
-            <div class="sphere-center glass" id="playBtn">
+    <main class="home-layout">
+
+        <aside class="main-content player-column">
+
+            <div class="player-queue">
+                <div class="track-queue" id="trackQueue"></div>
+            </div>
+
+            <div class="player-body">
+                <div class="track-info">
+                    <div class="player-cover" id="playerCover">
+                        <span class="player-cover-icon">♪</span>
+                    </div>
+                    <div class="track-title" id="trackTitle">Загрузите музыку</div>
+                    <div class="track-artist" id="trackArtist">Нажмите кнопку "Загрузить"</div>
+                    <button class="lyrics-trigger" id="lyricsBtn" type="button">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h10v2H4z"/>
+                        </svg>
+                        <span>Найти текст</span>
+                    </button>
+                </div>
+
+                <div class="progress-container">
+                    <div class="progress-bar-wrapper" id="progressWrapper">
+                        <div class="progress-bar-buffer" id="progressBuffer"></div>
+                        <div class="progress-bar-fill" id="progressFill"></div>
+                    </div>
+                    <div class="progress-times">
+                        <span id="currentTime">0:00</span>
+                        <span id="totalTime">0:00</span>
+                    </div>
+                </div>
+
+                <div class="controls">
+                    <button class="control-btn glass" id="shuffleBtn" title="Перемешать">
+                        <svg viewBox="0 0 24 24"><path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/></svg>
+                    </button>
+                    <button class="control-btn glass" id="prevBtn">
+                        <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+                    </button>
+                    <button class="control-btn play-btn glass" id="mainPlayBtn">
+                        <svg viewBox="0 0 24 24" id="mainPlayIcon"><path d="M8 5v14l11-7z"/></svg>
+                        <svg viewBox="0 0 24 24" id="mainPauseIcon" style="display:none"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                    </button>
+                    <button class="control-btn glass" id="nextBtn">
+                        <svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
+                    </button>
+                    <button class="control-btn glass" id="repeatBtn" title="Повтор">
+                        <svg viewBox="0 0 24 24"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/></svg>
+                    </button>
+                </div>
+
+                <div class="volume-control">
+                    <button class="volume-icon-btn" id="volumeIconBtn" type="button" title="Выключить звук" aria-label="Выключить звук">
+                        <svg class="vol-icon-normal" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                            <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+                        </svg>
+                        <svg class="vol-icon-muted" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                            <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>
+                        </svg>
+                    </button>
+                    <input type="range" class="volume-slider" id="volumeSlider" min="0" max="100" value="25" aria-label="Громкость">
+                </div>
+            </div>
+
+        </aside>
+
+                <section class="stage-column" id="stageColumn">
+            <div class="stage-view stage-view-globe" data-view="globe">
+                <div class="globe-wrap">
+                    <canvas id="globeCanvas"></canvas>
+                </div>
+                <div class="world-hint" id="worldHint">перетащите, чтобы вращать · клик по континенту</div>
+            </div>
+
+            <div class="stage-view stage-view-cover" data-view="cover">
+                <div class="stage-cover" id="stageCover">
+                    <span class="stage-cover-icon">♪</span>
+                </div>
+                <div class="stage-meta">
+                    <div class="stage-meta-title" id="stageMetaTitle">Загрузите музыку</div>
+                    <div class="stage-meta-artist" id="stageMetaArtist">Нажмите кнопку "Загрузить"</div>
+                </div>
+            </div>
+
+            <button class="stage-toggle" id="stageToggle" type="button" aria-label="Переключить режим сцены">
+                <span class="stage-toggle-dots">
+                    <span class="stage-toggle-dot" data-dot="globe"></span>
+                    <span class="stage-toggle-dot" data-dot="cover"></span>
+                </span>
+                <svg viewBox="0 0 24 24" class="stage-toggle-icon-globe" aria-hidden="true">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.94-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+                </svg>
+                <svg viewBox="0 0 24 24" class="stage-toggle-icon-cover" aria-hidden="true">
+                    <path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"/>
+                </svg>
+                <span class="stage-toggle-label-wrap">
+                    <span id="stageToggleLabel" class="stage-toggle-label">Обложка</span>
+                </span>
+            </button>
+
+            <div id="playBtn" style="display:none" aria-hidden="true">
                 <div class="play-icon"></div>
                 <div class="pause-icon"><span></span><span></span></div>
             </div>
-        </div>
-        <div class="track-info">
-            <button class="lyrics-trigger" id="lyricsBtn" type="button">
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h10v2H4z"/>
-                </svg>
-                <span>Найти текст (бета)</span>
-            </button>
-            <div class="player-cover" id="playerCover">
-                <span class="player-cover-icon">♪</span>
-            </div>
-            <div class="track-title" id="trackTitle">Загрузите музыку</div>
-            <div class="track-artist" id="trackArtist">Нажмите кнопку "Загрузить"</div>
-        </div>
-        <div class="visualizer" id="visualizer"></div>
-        <div class="progress-container">
-            <div class="progress-bar-wrapper" id="progressWrapper">
-                <div class="progress-bar-fill" id="progressFill"></div>
-            </div>
-            <div class="progress-times">
-                <span id="currentTime">0:00</span>
-                <span id="totalTime">0:00</span>
-            </div>
-        </div>
-        <div class="controls">
-            <button class="control-btn glass" id="shuffleBtn" title="Перемешать">
-                <svg viewBox="0 0 24 24"><path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/></svg>
-            </button>
-            <button class="control-btn glass" id="prevBtn">
-                <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
-            </button>
-            <button class="control-btn play-btn glass" id="mainPlayBtn">
-                <svg viewBox="0 0 24 24" id="mainPlayIcon"><path d="M8 5v14l11-7z"/></svg>
-                <svg viewBox="0 0 24 24" id="mainPauseIcon" style="display:none"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
-            </button>
-            <button class="control-btn glass" id="nextBtn">
-                <svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
-            </button>
-            <button class="control-btn glass" id="repeatBtn" title="Повтор">
-                <svg viewBox="0 0 24 24"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/></svg>
-            </button>
-        </div>
-        <div class="volume-control">
-            <button class="volume-icon-btn" id="volumeIconBtn" type="button" title="Выключить звук" aria-label="Выключить звук">
-                <svg class="vol-icon-normal" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                    <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
-                </svg>
-                <svg class="vol-icon-muted" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                    <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>
-                </svg>
-            </button>
-            <input type="range" class="volume-slider" id="volumeSlider" min="0" max="100" value="25" aria-label="Громкость">
-        </div>
-        <section class="recommendations">
-            <h2 class="section-title">Рекомендации для вас</h2>
-            <div class="rec-grid" id="recGrid"></div>
         </section>
+
+        <aside class="sidebar-column">
+            <div class="sidebar-block" data-collapsible="recent">
+                <button class="sidebar-block-title sidebar-block-toggle" type="button" aria-expanded="true">
+                    <span>Недавнее</span>
+                    <svg class="sidebar-block-chevron" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M7.41 8.59 12 13.17l4.59-4.58L18 10l-6 6-6-6z"/>
+                    </svg>
+                </button>
+                <div class="sidebar-recent" id="sidebarRecent"></div>
+            </div>
+
+            <div class="sidebar-block">
+                <div class="sidebar-block-title"><span>Статистика</span></div>
+                <div class="sidebar-stats" id="sidebarStats"></div>
+            </div>
+
+            <div class="sidebar-block" data-collapsible="playlists">
+                <button class="sidebar-block-title sidebar-block-toggle" type="button" aria-expanded="true">
+                    <span>Плейлисты</span>
+                    <span class="sidebar-block-right">
+                        <span class="sidebar-block-count" id="sidebarPlaylistsCount"></span>
+                        <svg class="sidebar-block-chevron" viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M7.41 8.59 12 13.17l4.59-4.58L18 10l-6 6-6-6z"/>
+                        </svg>
+                    </span>
+                </button>
+                <div class="sidebar-playlists" id="sidebarPlaylists"></div>
+            </div>
+        </aside>
+
     </main>
-</div>
+</div>       
 
 <div class="page" id="page-mymusic">
     <main class="mymusic-content">
@@ -217,13 +312,13 @@
         </section>
         <section class="large-tiles">
             <div class="large-tile glass" id="likedTile">
-                <div class="tile-count" id="likedCount">0 треков</div>
+                <div class="tile-count" id="likedCount"><span class="tile-count-num">0</span> <span class="tile-count-word">треков</span></div>
                 <div class="tile-icon">❤️</div>
                 <div class="tile-title">Моя музыка</div>
                 <div class="tile-subtitle">Загруженные треки</div>
             </div>
             <div class="large-tile glass" id="playlistsTile">
-                <div class="tile-count" id="playlistCount">0 плейлистов</div>
+                <div class="tile-count" id="playlistCount"><span class="tile-count-num">0</span> <span class="tile-count-word">плейлистов</span></div>
                 <div class="tile-icon">🎵</div>
                 <div class="tile-title">Мои плейлисты</div>
                 <div class="tile-subtitle">Созданные коллекции</div>
@@ -300,20 +395,6 @@
             <h2 class="section-title">Топ 100</h2>
             <div class="track-list-chart" id="top100List"></div>
         </section>
-    </main>
-</div>
-
-<div class="page" id="page-world">
-    <main class="world-content">
-        <div class="globe-wrap">
-            <canvas id="globeCanvas"></canvas>
-        </div>
-        <div class="world-hint" id="worldHint">перетащите, чтобы вращать · клик по континенту</div>
-        <div class="world-info" id="worldInfo">
-            <div class="world-info-name" id="worldInfoName"></div>
-            <div class="world-info-count" id="worldInfoCount"></div>
-            <button class="world-info-play" id="worldInfoPlay">▶ Слушать</button>
-        </div>
     </main>
 </div>
 
@@ -411,6 +492,18 @@
 
         <section class="settings-section glass">
             <h2 class="settings-section-title"><span>🎨</span>Интерфейс</h2>
+            <div class="setting-item"
+                data-tip-title="Режим навигации"
+                data-tip="Классика — вкладки в шапке. Mbox — нижний док, который выезжает при наведении на низ экрана.">
+                <div>
+                    <div class="setting-label">Режим навигации</div>
+                    <div class="setting-description">Где живут вкладки: шапка или низ</div>
+                </div>
+                <div class="radio-group" id="navModeRadio">
+                    <div class="radio-btn active" data-value="classic">Классика</div>
+                    <div class="radio-btn" data-value="mbox">Mbox</div>
+                </div>
+            </div>
             <div class="setting-item"
                 data-tip-title="Размер шрифта"
                 data-tip="Масштаб всего интерфейса, от 12 до 20 пикселей.">
@@ -628,7 +721,7 @@
                 <div class="account-item"><div class="account-item-left"><div class="account-item-icon">⭐</div><span class="account-item-label">Подписка Premium</span></div><span class="account-item-arrow">›</span></div>
                 <div class="account-item"><div class="account-item-left"><div class="account-item-icon">🔔</div><span class="account-item-label">Уведомления</span></div><span class="account-item-arrow">›</span></div>
                 <div class="account-item"><div class="account-item-left"><div class="account-item-icon">🌐</div><span class="account-item-label">Язык и регион</span></div><span class="account-item-arrow">›</span></div>
-                <div class="account-item"><div class="account-item-left"><div class="account-item-icon">❓</div><span class="account-item-label">Помощь и поддержка</span></div><span class="account-item-arrow">›</span></div>
+                <div class="account-item" data-action="support"><div class="account-item-left"><div class="account-item-icon">❓</div><span class="account-item-label">Помощь и поддержка</span></div><span class="account-item-arrow">›</span></div>
             </div>
             <button class="logout-btn">Выйти из аккаунта</button>
         </div>
@@ -672,8 +765,68 @@
 
 <div class="modal lyrics-modal" id="lyricsModal">
     <div class="lyrics-modal-inner glass">
+        <button class="lyrics-settings-btn" id="lyricsSettingsBtn" title="Настройки сцены" aria-label="Настройки сцены">
+            <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.48.48 0 0 0-.48-.41h-3.84a.48.48 0 0 0-.48.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.48.48 0 0 0-.59.22L2.74 8.87a.48.48 0 0 0 .12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.48-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.49.49 0 0 0-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+        </button>
         <button class="modal-close lyrics-close" onclick="closeModal('lyricsModal')">×</button>
 
+        <aside class="lyrics-panel" id="lyricsPanel" aria-hidden="true">
+            <div class="lyrics-panel-header">
+                <span class="lyrics-panel-title">Сцена текста</span>
+                <div class="lyrics-panel-actions">
+                    <button class="lyrics-panel-reset" id="lyricsPanelReset" title="Сбросить">↺</button>
+                    <button class="lyrics-panel-close" id="lyricsPanelClose" title="Закрыть" aria-label="Закрыть панель">
+                        <svg viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="lyrics-panel-body">
+                <div class="lyrics-opt">
+                    <div class="lyrics-opt-label">Шрифт</div>
+                    <div class="lyrics-font-grid" id="lyricsFontGrid"></div>
+                </div>
+                <div class="lyrics-opt">
+                    <div class="lyrics-opt-label">Размер текста</div>
+                    <div class="lyrics-radio-row" data-option="size">
+                        <button class="lyrics-radio" data-value="0.85">S</button>
+                        <button class="lyrics-radio active" data-value="1">M</button>
+                        <button class="lyrics-radio" data-value="1.2">L</button>
+                        <button class="lyrics-radio" data-value="1.5">XL</button>
+                    </div>
+                </div>
+                <div class="lyrics-opt">
+                    <div class="lyrics-opt-label">Выравнивание</div>
+                    <div class="lyrics-radio-row" data-option="align">
+                        <button class="lyrics-radio active" data-value="left">По левому краю</button>
+                        <button class="lyrics-radio" data-value="center">По центру</button>
+                    </div>
+                </div>
+                <div class="lyrics-opt">
+                    <div class="lyrics-opt-label">Фон сцены</div>
+                    <div class="lyrics-radio-row" data-option="bg">
+                        <button class="lyrics-radio active" data-value="dark">Тёмный</button>
+                        <button class="lyrics-radio" data-value="blur">Обложка</button>
+                        <button class="lyrics-radio" data-value="gradient">Градиент</button>
+                    </div>
+                </div>
+                <div class="lyrics-opt">
+                    <div class="lyrics-opt-label">Цвет текста</div>
+                    <div class="lyrics-radio-row" data-option="color">
+                        <button class="lyrics-radio active" data-value="auto">Авто</button>
+                        <button class="lyrics-radio" data-value="white">Белый</button>
+                        <button class="lyrics-radio" data-value="accent">Акцент</button>
+                    </div>
+                </div>
+                <div class="lyrics-opt">
+                    <div class="lyrics-opt-label">Обложка</div>
+                    <div class="lyrics-radio-row" data-option="cover">
+                        <button class="lyrics-radio active" data-value="on">Показывать</button>
+                        <button class="lyrics-radio" data-value="off">Скрыть</button>
+                    </div>
+                </div>
+            </div>
+        </aside>
+        <div class="lyrics-bg" id="lyricsBg"></div>
         <div class="lyrics-stage" id="lyricsStage">
             <div class="lyrics-left">
                 <div class="lyrics-cover" id="lyricsCover">
@@ -688,19 +841,185 @@
                     <div class="lyrics-player-volume" id="lyricsPlayerVolume"></div>
                 </div>
             </div>
-
             <div class="lyrics-status" id="lyricsStatus"></div>
-
             <div class="lyrics-scroller" id="lyricsScroller">
                 <div class="lyrics-lines" id="lyricsLines"></div>
             </div>
-
             <div class="lyrics-source-row" id="lyricsSource"></div>
         </div>
     </div>
 </div>
 
 <div class="lyrics-glow" id="lyricsGlow"></div>
+
+<div class="modal artist-modal" id="regionModal">
+    <div class="artist-modal-inner">
+        <button class="artist-modal-close" id="regionModalClose" aria-label="Закрыть">
+            <svg viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+
+        <div class="artist-hero">
+            <div class="artist-hero-avatar" id="regionHeroAvatar">🌍</div>
+            <div class="artist-hero-info">
+                <div class="artist-hero-label">Регион</div>
+                <h1 class="artist-hero-name" id="regionHeroName">—</h1>
+                <div class="artist-hero-stats" id="regionHeroStats"></div>
+                <div class="artist-hero-actions">
+                    <button class="artist-btn primary" id="regionPlayAllBtn">
+                        <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                        <span>Слушать всё</span>
+                    </button>
+                    <button class="artist-btn" id="regionShuffleBtn">
+                        <svg viewBox="0 0 24 24"><path d="M10.59 9.17 5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/></svg>
+                        <span>Вперемешку</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="artist-body">
+            <div class="artist-tracks-header">
+                <span>Треки региона</span>
+                <span class="artist-tracks-count" id="regionTracksCount"></span>
+            </div>
+            <div class="artist-tracks" id="regionTracks"></div>
+        </div>
+    </div>
+</div>
+
+<div class="modal artist-modal" id="artistModal">
+    <div class="artist-modal-inner">
+        <button class="artist-modal-close" id="artistModalClose" aria-label="Закрыть">
+            <svg viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+
+        <div class="artist-hero" id="artistHero">
+            <div class="artist-hero-avatar" id="artistHeroAvatar">A</div>
+            <div class="artist-hero-info">
+                <div class="artist-hero-label">Исполнитель</div>
+                <h1 class="artist-hero-name" id="artistHeroName">—</h1>
+                <div class="artist-hero-stats" id="artistHeroStats"></div>
+                <div class="artist-hero-actions">
+                    <button class="artist-btn primary" id="artistPlayAllBtn">
+                        <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                        <span>Слушать всё</span>
+                    </button>
+                    <button class="artist-btn" id="artistShuffleBtn">
+                        <svg viewBox="0 0 24 24"><path d="M10.59 9.17 5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/></svg>
+                        <span>Вперемешку</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="artist-body">
+            <div class="artist-tracks-header">
+                <span>Треки</span>
+                <span class="artist-tracks-count" id="artistTracksCount"></span>
+            </div>
+            <div class="artist-tracks" id="artistTracks"></div>
+        </div>
+    </div>
+</div>
+
+<div class="modal support-modal" id="supportModal">
+    <div class="modal-content glass support-modal-content">
+        <div class="modal-header">
+            <h2 class="modal-title">Помощь и поддержка</h2>
+            <button class="modal-close" onclick="closeModal('supportModal')">×</button>
+        </div>
+
+        <p class="support-lead">
+            Опишите проблему, идею или вопрос — мы ответим на вашу почту.
+        </p>
+
+        <form class="support-form" id="supportForm" novalidate>
+            <div class="form-group">
+                <label class="form-label" for="supportName">Ваше имя / ник</label>
+                <input type="text" class="form-input" id="supportName" placeholder="Как к вам обращаться" maxlength="40">
+                <div class="form-error" id="errSupportName"></div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="supportEmail">Email для ответа</label>
+                <input type="email" class="form-input" id="supportEmail" placeholder="you@example.com" required>
+                <div class="form-error" id="errSupportEmail"></div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="supportTopic">Тема</label>
+                <div class="select-wrapper">
+                    <select class="select support-select" id="supportTopic">
+                        <option value="Вопрос">Вопрос</option>
+                        <option value="Баг">Баг</option>
+                        <option value="Идея">Идея</option>
+                        <option value="Сотрудничество">Сотрудничество</option>
+                        <option value="Другое">Другое</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="supportMessage">Сообщение</label>
+                <textarea class="form-input support-textarea" id="supportMessage" placeholder="Опишите проблему или идею как можно подробнее…" maxlength="2000" required></textarea>
+                <div class="form-error" id="errSupportMessage"></div>
+                <div class="support-charcount"><span id="supportCharCount">0</span> / 2000</div>
+            </div>
+
+            <input type="checkbox" id="supportBotCheck" class="support-botcheck" tabindex="-1" autocomplete="off">
+
+            <button type="submit" class="register-submit" id="supportSubmit">Отправить</button>
+
+            <div class="support-status" id="supportStatus"></div>
+        </form>
+    </div>
+</div>
+
+<div class="mini-player" id="miniPlayer" aria-hidden="true">
+    <div class="mini-cover" id="miniCover">
+        <span class="mini-cover-icon">♪</span>
+    </div>
+
+    <div class="mini-info">
+        <div class="mini-title" id="miniTitle">—</div>
+        <div class="mini-artist" id="miniArtist">—</div>
+    </div>
+
+    <div class="mini-progress" id="miniProgressWrapper">
+        <div class="mini-progress-fill" id="miniProgressFill"></div>
+    </div>
+    <div class="mini-times">
+        <span id="miniCurrentTime">0:00</span>
+        <span id="miniTotalTime">0:00</span>
+    </div>
+
+    <div class="mini-controls">
+        <button class="mini-btn" id="miniShuffleBtn" aria-label="Перемешать" title="Перемешать">
+            <svg viewBox="0 0 24 24"><path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/></svg>
+        </button>
+        <button class="mini-btn" id="miniPrevBtn" aria-label="Предыдущий">
+            <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+        </button>
+        <button class="mini-btn play" id="miniPlayBtn" aria-label="Воспроизведение">
+            <svg viewBox="0 0 24 24" class="mini-play-icon"><path d="M8 5v14l11-7z"/></svg>
+            <svg viewBox="0 0 24 24" class="mini-pause-icon" style="display:none"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+        </button>
+        <button class="mini-btn" id="miniNextBtn" aria-label="Следующий">
+            <svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
+        </button>
+        <button class="mini-btn" id="miniRepeatBtn" aria-label="Повтор" title="Повтор">
+            <svg viewBox="0 0 24 24"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/></svg>
+        </button>
+    </div>
+
+    <div class="mini-volume">
+        <button class="mini-volume-btn" id="miniVolumeBtn" type="button" aria-label="Звук">
+            <svg viewBox="0 0 24 24" class="mini-vol-normal" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>
+            <svg viewBox="0 0 24 24" class="mini-vol-muted" fill="currentColor"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3z"/></svg>
+        </button>
+        <input type="range" class="mini-volume-slider" id="miniVolumeSlider" min="0" max="100" value="25" aria-label="Громкость">
+    </div>
+</div>
 
 <script src="artists.js"></script>
 <script src="track-storage.js"></script>
@@ -719,6 +1038,8 @@
 <script src="equalizer.js"></script>
 <script src="background-system.js"></script>
 <script src="page-transition.js"></script>
+<script src="mini-player.js"></script>
 <script src="app.js"></script>
+
 </body>
 </html>
