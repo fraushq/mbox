@@ -219,6 +219,9 @@ async function init() {
         renderSidebarStats();
         buildTop100();
         buildChartPlaylists();
+        if (document.getElementById('page-profile')?.classList.contains('active')) {
+            renderProfile();
+        }
     };
 
     audioEngine.onPause = () => {
@@ -312,8 +315,8 @@ async function init() {
     fileUploadSystem.updateTrackListUI();
     if (window.trackQueue) window.trackQueue.render();
 
-    renderSidebarAll();
     buildChartPlaylists();
+    _syncProfileAvatarInUI()
     buildTop100();
 
     if (restored > 0) {
@@ -845,6 +848,629 @@ function buildRecommendations() {
         </div>
     `;
 }
+
+const ACHIEVEMENTS_DEF = [
+    { id: 'first',    icon: '🌱', name: 'Первые шаги',  desc: 'Загружен 1 трек',          test: (s) => s.tracks >= 1 },
+    { id: 'ten',      icon: '🎧', name: 'Слушатель',    desc: '10 треков в базе',         test: (s) => s.tracks >= 10 },
+    { id: 'melo',     icon: '🎵', name: 'Меломан',      desc: '100 треков в базе',        test: (s) => s.tracks >= 100 },
+    { id: 'legend',   icon: '👑', name: 'Легенда',      desc: '1000 треков в базе',       test: (s) => s.tracks >= 1000 },
+    { id: 'hour',     icon: '⏱️', name: 'Час в деле',   desc: '1 час прослушивания',      test: (s) => s.hours >= 1 },
+    { id: 'tenhours', icon: '🔥', name: 'На волне',     desc: '10 часов прослушивания',   test: (s) => s.hours >= 10 },
+    { id: 'marathon', icon: '🏃', name: 'Марафонец',    desc: '50 часов прослушивания',   test: (s) => s.hours >= 50 },
+    { id: 'collect',  icon: '💎', name: 'Коллекционер', desc: '10 плейлистов',            test: (s) => s.playlists >= 10 },
+    { id: 'global',   icon: '🌍', name: 'Глобалист',    desc: '5 регионов в базе',        test: (s) => s.regions >= 5 },
+    { id: 'explore',  icon: '🔍', name: 'Исследователь',desc: '20 артистов в базе',       test: (s) => s.artists >= 20 },
+    { id: 'starter',  icon: '▶️', name: 'Начало положено',desc: 'Первый трек запущен',      test: (s) => s.plays >= 1 },
+    { id: 'repeat',   icon: '🔁', name: 'По кругу',     desc: '100 запусков',             test: (s) => s.plays >= 100 }
+];
+
+function _profileStats() {
+    const list = audioEngine?.playlist || [];
+    const totalPlays = list.reduce((s, t) => s + (t.playCount || 0), 0);
+    const totalSeconds = list.reduce((s, t) => s + (t.duration || 0) * (t.playCount || 0), 0);
+    const hours = Math.floor(totalSeconds / 3600);
+
+    const artistsSet = new Set();
+    const regionsSet = new Set();
+    const daysSet = new Set();
+
+    list.forEach(t => {
+        if (t.artist && t.artist !== 'Неизвестный исполнитель') artistsSet.add(t.artist);
+        if (t.region != null && t.region >= 0) regionsSet.add(t.region);
+        if (t.lastPlayedAt) {
+            const d = new Date(t.lastPlayedAt);
+            daysSet.add(d.toISOString().slice(0, 10));
+        }
+    });
+
+    const playlists = window.playlistManager ? window.playlistManager.getPlaylistCount() : 0;
+
+    return {
+        tracks: list.length,
+        plays: totalPlays,
+        hours,
+        minutes: Math.floor((totalSeconds % 3600) / 60),
+        artists: artistsSet.size,
+        regions: regionsSet.size,
+        playlists,
+        days: daysSet.size,
+        totalSeconds
+    };
+}
+
+
+const PROFILE_AVATAR_KEY = 'profileAvatar';
+const PROFILE_COVER_KEY  = 'profileCover';
+
+function _resizeImage(file, maxW, maxH, quality = 0.85) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onerror = () => reject(new Error('read failed'));
+        reader.onload = () => {
+            const img = new Image();
+            img.onerror = () => reject(new Error('load failed'));
+            img.onload = () => {
+                const ratio = Math.min(maxW / img.width, maxH / img.height, 1);
+                const w = Math.round(img.width * ratio);
+                const h = Math.round(img.height * ratio);
+                const canvas = document.createElement('canvas');
+                canvas.width = w;
+                canvas.height = h;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, w, h);
+                const dataUrl = canvas.toDataURL('image/jpeg', quality);
+                resolve(dataUrl);
+            };
+            img.src = reader.result;
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+function openEditProfileModal() {
+    const modal = document.getElementById('editProfileModal');
+    if (!modal) return;
+
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+    const nameEl = document.getElementById('editProfileName');
+    const userEl = document.getElementById('editProfileUsername');
+    const bioEl  = document.getElementById('editProfileBio');
+
+    if (nameEl) nameEl.value = user.name || '';
+    if (userEl) userEl.value = user.username || '';
+    if (bioEl) {
+        bioEl.value = user.bio || '';
+        const counter = document.getElementById('editBioCount');
+        if (counter) counter.textContent = bioEl.value.length;
+    }
+
+    const avatarUrl = localStorage.getItem(PROFILE_AVATAR_KEY);
+    const avatarWrap = document.getElementById('editProfileAvatar');
+    if (avatarWrap) {
+        if (avatarUrl) {
+            avatarWrap.style.backgroundImage = `url("${avatarUrl}")`;
+            avatarWrap.classList.add('has-image');
+        } else {
+            avatarWrap.style.backgroundImage = '';
+            avatarWrap.classList.remove('has-image');
+            const ph = avatarWrap.querySelector('.edit-profile-avatar-placeholder');
+            if (ph) ph.textContent = (user.name || '?').charAt(0).toUpperCase();
+        }
+    }
+
+    const coverUrl = localStorage.getItem(PROFILE_COVER_KEY);
+    const coverEl = document.getElementById('editProfileCover');
+    const coverRemoveBtn = document.getElementById('editCoverRemoveBtn');
+    if (coverEl) {
+        if (coverUrl) {
+            coverEl.style.backgroundImage = `url("${coverUrl}")`;
+            coverEl.classList.add('has-image');
+            if (coverRemoveBtn) coverRemoveBtn.hidden = false;
+        } else {
+            coverEl.style.backgroundImage = '';
+            coverEl.classList.remove('has-image');
+            if (coverRemoveBtn) coverRemoveBtn.hidden = true;
+        }
+    }
+
+    modal.classList.add('active');
+
+    setTimeout(() => nameEl?.focus(), 200);
+}
+
+function closeEditProfileModal() {
+    const modal = document.getElementById('editProfileModal');
+    if (modal) modal.classList.remove('active');
+}
+
+function saveProfile() {
+    const nameEl = document.getElementById('editProfileName');
+    const userEl = document.getElementById('editProfileUsername');
+    const bioEl  = document.getElementById('editProfileBio');
+
+    const name = (nameEl?.value || '').trim();
+    const username = (userEl?.value || '').trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
+    const bio = (bioEl?.value || '').trim().slice(0, 120);
+
+    if (name.length < 2) {
+        showNotification('Имя — минимум 2 символа', true);
+        nameEl?.focus();
+        return;
+    }
+    if (username.length < 3) {
+        showNotification('Username — минимум 3 символа', true);
+        userEl?.focus();
+        return;
+    }
+
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    user.name = name;
+    user.username = username;
+    user.bio = bio;
+    user.avatar = name.charAt(0).toUpperCase();
+
+    localStorage.setItem('user', JSON.stringify(user));
+
+    renderProfile();
+    _syncProfileAvatarInUI();
+
+    closeEditProfileModal();
+    showNotification('Профиль сохранён');
+}
+
+function _syncProfileAvatarInUI() {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const avatarUrl = localStorage.getItem(PROFILE_AVATAR_KEY);
+    const letter = (user.name || '?').charAt(0).toUpperCase();
+
+    const heroWrap = document.getElementById('profileAvatar');
+    if (heroWrap) {
+        let heroLetter = document.getElementById('profileAvatarLetter');
+        let heroImage  = document.getElementById('profileAvatarImage');
+
+        if (!heroLetter) {
+            const rawText = (heroWrap.textContent || '').trim();
+            heroWrap.innerHTML = '';
+            heroLetter = document.createElement('span');
+            heroLetter.className = 'profile-avatar-letter';
+            heroLetter.id = 'profileAvatarLetter';
+            heroLetter.textContent = rawText || letter;
+            heroWrap.appendChild(heroLetter);
+        }
+        if (!heroImage) {
+            heroImage = document.createElement('img');
+            heroImage.className = 'profile-avatar-image';
+            heroImage.id = 'profileAvatarImage';
+            heroImage.alt = '';
+            heroImage.hidden = true;
+            heroWrap.appendChild(heroImage);
+        }
+    }
+
+    // топбар
+    document.querySelectorAll('.topbar-avatar .profile-avatar').forEach(el => {
+        if (avatarUrl) {
+            el.textContent = '';
+            el.style.backgroundImage = `url("${avatarUrl}")`;
+            el.style.backgroundSize = 'cover';
+            el.style.backgroundPosition = 'center';
+            el.classList.add('has-image');
+        } else {
+            el.textContent = letter;
+            el.style.backgroundImage = '';
+            el.classList.remove('has-image');
+        }
+    });
+
+    // bottom nav
+    document.querySelectorAll('.bn-circle .profile-avatar').forEach(el => {
+        if (avatarUrl) {
+            el.textContent = '';
+            el.style.backgroundImage = `url("${avatarUrl}")`;
+            el.style.backgroundSize = 'cover';
+            el.style.backgroundPosition = 'center';
+            el.classList.add('has-image');
+        } else {
+            el.textContent = letter;
+            el.style.backgroundImage = '';
+            el.classList.remove('has-image');
+        }
+    });
+
+    // hero профиля — управляем через style.display (hidden перебивается CSS)
+    const heroLetter = document.getElementById('profileAvatarLetter');
+    const heroImage  = document.getElementById('profileAvatarImage');
+
+    if (heroLetter && heroImage) {
+        if (avatarUrl) {
+            heroImage.src = avatarUrl;
+            heroImage.removeAttribute('hidden');
+            heroImage.style.display = 'block';
+            heroLetter.style.display = 'none';
+        } else {
+            heroImage.removeAttribute('src');
+            heroImage.setAttribute('hidden', '');
+            heroImage.style.display = 'none';
+            heroLetter.style.display = 'flex';
+            heroLetter.textContent = letter;
+        }
+    } else {
+        console.warn('_syncProfileAvatarInUI: не найдены элементы hero');
+    }
+}
+
+function setupEditProfile() {
+    const modal = document.getElementById('editProfileModal');
+    if (!modal) return;
+
+    document.querySelectorAll('.account-item[data-action="edit-profile"]').forEach(el => {
+        el.addEventListener('click', openEditProfileModal);
+    });
+
+    document.getElementById('editProfileClose')?.addEventListener('click', closeEditProfileModal);
+    document.getElementById('editProfileCancelBtn')?.addEventListener('click', closeEditProfileModal);
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeEditProfileModal();
+    });
+
+    const bioEl = document.getElementById('editProfileBio');
+    bioEl?.addEventListener('input', () => {
+        const c = document.getElementById('editBioCount');
+        if (c) c.textContent = bioEl.value.length;
+    });
+
+    const userEl = document.getElementById('editProfileUsername');
+    userEl?.addEventListener('input', (e) => {
+        e.target.value = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '').slice(0, 20);
+    });
+
+    const nameEl = document.getElementById('editProfileName');
+    nameEl?.addEventListener('input', (e) => {
+        const wrap = document.getElementById('editProfileAvatar');
+        if (!wrap || wrap.classList.contains('has-image')) return;
+        const ph = wrap.querySelector('.edit-profile-avatar-placeholder');
+        if (ph) ph.textContent = (e.target.value || '?').charAt(0).toUpperCase();
+    });
+
+    document.getElementById('editProfileForm')?.addEventListener('submit', (e) => {
+        e.preventDefault();
+        saveProfile();
+    });
+
+    const avatarFileInput = document.getElementById('editAvatarFile');
+    document.getElementById('editAvatarUploadBtn')?.addEventListener('click', () => {
+        avatarFileInput?.click();
+    });
+    avatarFileInput?.addEventListener('change', async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        if (file.size > 5 * 1024 * 1024) {
+            showNotification('Файл больше 5 МБ', true);
+            return;
+        }
+        try {
+            const dataUrl = await _resizeImage(file, 400, 400, 0.88);
+            localStorage.setItem(PROFILE_AVATAR_KEY, dataUrl);
+
+            const wrap = document.getElementById('editProfileAvatar');
+            if (wrap) {
+                wrap.style.backgroundImage = `url("${dataUrl}")`;
+                wrap.classList.add('has-image');
+            }
+            _syncProfileAvatarInUI();
+            showNotification('Аватар обновлён');
+        } catch (err) {
+            console.warn(err);
+            showNotification('Не удалось загрузить аватар', true);
+        }
+        e.target.value = '';
+    });
+
+    document.getElementById('editAvatarRemoveBtn')?.addEventListener('click', () => {
+        localStorage.removeItem(PROFILE_AVATAR_KEY);
+        const wrap = document.getElementById('editProfileAvatar');
+        if (wrap) {
+            wrap.style.backgroundImage = '';
+            wrap.classList.remove('has-image');
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            const ph = wrap.querySelector('.edit-profile-avatar-placeholder');
+            if (ph) ph.textContent = (user.name || '?').charAt(0).toUpperCase();
+        }
+        _syncProfileAvatarInUI();
+        showNotification('Аватар убран');
+    });
+
+    const coverFileInput = document.getElementById('editCoverFile');
+    document.getElementById('editCoverBtn')?.addEventListener('click', () => {
+        coverFileInput?.click();
+    });
+    coverFileInput?.addEventListener('change', async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        if (file.size > 8 * 1024 * 1024) {
+            showNotification('Файл больше 8 МБ', true);
+            return;
+        }
+        try {
+            const dataUrl = await _resizeImage(file, 1600, 600, 0.82);
+            localStorage.setItem(PROFILE_COVER_KEY, dataUrl);
+
+            const coverEl = document.getElementById('editProfileCover');
+            if (coverEl) {
+                coverEl.style.backgroundImage = `url("${dataUrl}")`;
+                coverEl.classList.add('has-image');
+            }
+            document.getElementById('editCoverRemoveBtn').hidden = false;
+
+            renderProfileHero();
+            showNotification('Обложка обновлена');
+        } catch (err) {
+            console.warn(err);
+            showNotification('Не удалось загрузить обложку', true);
+        }
+        e.target.value = '';
+    });
+
+    document.getElementById('editCoverRemoveBtn')?.addEventListener('click', () => {
+        localStorage.removeItem(PROFILE_COVER_KEY);
+        const coverEl = document.getElementById('editProfileCover');
+        if (coverEl) {
+            coverEl.style.backgroundImage = '';
+            coverEl.classList.remove('has-image');
+        }
+        document.getElementById('editCoverRemoveBtn').hidden = true;
+        renderProfileHero();
+        showNotification('Обложка убрана');
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.classList.contains('active')) {
+            closeEditProfileModal();
+        }
+    });
+}
+
+window.openEditProfileModal = openEditProfileModal;
+window.closeEditProfileModal = closeEditProfileModal;
+window.setupEditProfile = setupEditProfile;
+
+function renderProfileHero() {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+    const avatarEl = document.getElementById('profileAvatar');
+    const nameEl   = document.getElementById('profileName');
+    const userEl   = document.getElementById('profileUsername');
+    const badgesEl = document.getElementById('profileBadges');
+    const bioEl    = document.getElementById('profileBio');
+    const heroEl   = document.getElementById('profileHero');
+    const stats    = _profileStats();
+
+    // имя
+    if (nameEl) nameEl.textContent = user.name || 'Гость';
+
+    // username
+    if (userEl) {
+        if (user.registeredAt) {
+            const date = new Date(user.registeredAt);
+            const months = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+            userEl.textContent = `@${user.username || 'guest'} · На платформе с ${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
+        } else {
+            userEl.textContent = `@${user.username || 'guest'}`;
+        }
+    }
+
+    // bio
+    if (bioEl) {
+        if (user.bio) {
+            bioEl.textContent = user.bio;
+            bioEl.hidden = false;
+        } else {
+            bioEl.hidden = true;
+        }
+    }
+
+    // обложка профиля
+    const coverUrl = localStorage.getItem(PROFILE_COVER_KEY);
+    if (heroEl) {
+        if (coverUrl) {
+            heroEl.style.setProperty('--profile-cover', `url("${coverUrl}")`);
+            heroEl.classList.add('has-cover');
+        } else {
+            heroEl.style.removeProperty('--profile-cover');
+            heroEl.classList.remove('has-cover');
+        }
+    }
+
+    // аватар + буква
+    _syncProfileAvatarInUI();
+
+    // бейджи
+    if (badgesEl) {
+        const badges = [];
+        if (stats.hours >= 10)  badges.push({ label: '⭐ Активный', cls: 'premium' });
+        if (stats.tracks >= 50) badges.push({ label: '🎵 Меломан' });
+        if (stats.regions >= 3) badges.push({ label: '🌍 Глобалист' });
+        if (stats.playlists >= 5) badges.push({ label: '💎 Коллекционер' });
+        if (stats.plays >= 50)  badges.push({ label: '🔥 В ударе' });
+        if (badges.length === 0) badges.push({ label: '👋 Новичок' });
+
+        badgesEl.innerHTML = badges
+            .map(b => `<span class="badge ${b.cls || ''}">${b.label}</span>`)
+            .join('');
+    }
+
+    // статистика-hero
+    const setText = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = val;
+    };
+    setText('profileStatTracks',    stats.tracks);
+    setText('profileStatArtists',   stats.artists);
+    setText('profileStatPlaylists', stats.playlists);
+    setText('profileStatHours',     stats.hours > 0 ? `${stats.hours}ч` : `${stats.minutes}м`);
+    setText('profileCardTracks', stats.tracks);
+    setText('profileCardPlays',  stats.plays);
+    setText('profileCardStreak', stats.days);
+
+    const unlocked = ACHIEVEMENTS_DEF.filter(a => a.test(stats));
+    setText('profileCardAchievements', `${unlocked.length}/${ACHIEVEMENTS_DEF.length}`);
+}
+
+function renderProfileAchievements() {
+    const wrap = document.getElementById('profileAchievements');
+    if (!wrap) return;
+
+    const stats = _profileStats();
+    wrap.innerHTML = '';
+
+    ACHIEVEMENTS_DEF.forEach(a => {
+        const unlocked = a.test(stats);
+        const div = document.createElement('div');
+        div.className = 'achievement' + (unlocked ? '' : ' locked');
+        div.innerHTML = `
+            <div class="achievement-icon">${unlocked ? a.icon : '🔒'}</div>
+            <div class="achievement-name">${escapeHtml(a.name)}</div>
+            <div class="achievement-desc">${escapeHtml(a.desc)}</div>
+        `;
+        wrap.appendChild(div);
+    });
+}
+
+function renderProfileTopArtists() {
+    const wrap = document.getElementById('profileTopArtists');
+    if (!wrap || !audioEngine) return;
+
+    const map = new Map();
+    (audioEngine.playlist || []).forEach(t => {
+        const name = t.artist || 'Неизвестный';
+        if (!map.has(name)) map.set(name, { name, tracks: 0, plays: 0 });
+        const e = map.get(name);
+        e.tracks++;
+        e.plays += (t.playCount || 0);
+    });
+
+    const list = Array.from(map.values())
+        .sort((a, b) => b.plays - a.plays || b.tracks - a.tracks)
+        .slice(0, 5);
+
+    if (list.length === 0) {
+        wrap.innerHTML = `<div class="sidebar-empty">Пока нет данных</div>`;
+        return;
+    }
+
+    const maxPlays = Math.max(1, ...list.map(a => a.plays));
+
+    wrap.innerHTML = '';
+    list.forEach((a, i) => {
+        const pct = (a.plays / maxPlays) * 100;
+        const row = document.createElement('div');
+        row.className = 'profile-artist-row';
+        row.innerHTML = `
+            <div class="profile-artist-rank">${i + 1}</div>
+            <div class="profile-artist-info">
+                <div class="profile-artist-name">${escapeHtml(a.name)}</div>
+                <div class="profile-artist-meta">
+                    <span>${a.tracks} ${pluralTracks(a.tracks)}</span>
+                    <span class="dot">·</span>
+                    <span>${a.plays} ${pluralPlays(a.plays)}</span>
+                </div>
+                <div class="profile-artist-bar"><span style="width:${pct.toFixed(1)}%"></span></div>
+            </div>
+        `;
+        row.addEventListener('click', () => {
+            if (typeof openArtistPage === 'function') openArtistPage(a.name);
+        });
+        row.style.cursor = 'pointer';
+        wrap.appendChild(row);
+    });
+}
+
+function renderProfileRegions() {
+    const wrap = document.getElementById('profileRegions');
+    if (!wrap || !audioEngine) return;
+
+    const counts = {};
+    (audioEngine.playlist || []).forEach(t => {
+        if (t.region == null || t.region < 0) return;
+        counts[t.region] = (counts[t.region] || 0) + 1;
+    });
+
+    const list = Object.entries(counts)
+        .map(([idx, n]) => ({ idx: parseInt(idx, 10), n }))
+        .sort((a, b) => b.n - a.n);
+
+    if (list.length === 0) {
+        wrap.innerHTML = `<div class="sidebar-empty">Регионы не определены — добавь артистов в artists.js</div>`;
+        return;
+    }
+
+    const max = list[0].n;
+    wrap.innerHTML = list.map(({ idx, n }) => {
+        const cls = n === max ? 'popular' : '';
+        const name = (typeof REGION_NAMES !== 'undefined' && REGION_NAMES[idx]) || 'Регион';
+        return `<span class="genre-tag ${cls}" data-region="${idx}">${escapeHtml(name)} <b>${n}</b></span>`;
+    }).join('');
+
+    wrap.querySelectorAll('.genre-tag[data-region]').forEach(el => {
+        el.addEventListener('click', () => {
+            const idx = parseInt(el.dataset.region, 10);
+            if (typeof openRegionPage === 'function') openRegionPage(idx);
+        });
+    });
+}
+
+function renderProfileActivity() {
+    const wrap = document.getElementById('profileActivity');
+    if (!wrap || !audioEngine) return;
+
+    const list = (audioEngine.playlist || [])
+        .filter(t => t.lastPlayedAt)
+        .sort((a, b) => b.lastPlayedAt - a.lastPlayedAt)
+        .slice(0, 5);
+
+    if (list.length === 0) {
+        wrap.innerHTML = `<div class="sidebar-empty">Пока нет активности</div>`;
+        return;
+    }
+
+    wrap.innerHTML = '';
+    list.forEach(t => {
+        const when = _relativeTime(t.lastPlayedAt);
+        const plays = t.playCount || 0;
+        const row = document.createElement('div');
+        row.className = 'activity-item';
+        row.innerHTML = `
+            <div class="activity-icon">🎵</div>
+            <div class="activity-info">
+                <div class="activity-title">Прослушал «${escapeHtml(t.title)}»</div>
+                <div class="activity-subtitle">${escapeHtml(t.artist)}${t.duration ? ' · ' + audioEngine.formatTime(t.duration) : ''}</div>
+            </div>
+            <div class="activity-time">${plays > 1 ? `${plays} ${pluralPlays(plays)} · ` : ''}${when}</div>
+        `;
+        row.addEventListener('click', () => {
+            const idx = audioEngine.playlist.indexOf(t);
+            if (idx < 0) return;
+            audioEngine.currentIndex = idx;
+            audioEngine.loadCurrentTrack();
+            audioEngine.play();
+            const homeBtn = document.querySelector('.nav-item[data-page="home"]');
+            if (homeBtn && !homeBtn.classList.contains('active')) homeBtn.click();
+        });
+        row.style.cursor = 'pointer';
+        wrap.appendChild(row);
+    });
+}
+
+function renderProfile() {
+    renderProfileHero();
+    renderProfileAchievements();
+    renderProfileTopArtists();
+    renderProfileRegions();
+    renderProfileActivity();
+}
+window.renderProfile = renderProfile;
+
 
 function updateStageCover(track) {
     const el      = document.getElementById('stageCover');
@@ -2664,6 +3290,7 @@ function setupEvents() {
     const pageTransition = new PageTransition();
     
     setupGlobalSearch();
+    setupEditProfile();
 
     setupBottomNav();
 
@@ -2686,8 +3313,10 @@ function setupEvents() {
         if (targetNav) targetNav.classList.add('active');
         document.getElementById('page-' + savedPage).classList.add('active');
 
-        // Показываем мини-плеер сразу (без анимации)
         if (window.miniPlayer) window.miniPlayer.show();
+        if (savedPage === 'profile') {
+            setTimeout(renderProfile, 100);
+        }
     }
 
 
@@ -2741,6 +3370,10 @@ function setupEvents() {
                 if (targetPage === 'charts') {
                     buildTop100();
                     buildChartPlaylists();
+                }
+
+                if (targetPage === 'profile') {
+                    renderProfile();
                 }
 
                 setTimeout(positionBottomNav, 100);

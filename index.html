@@ -595,6 +595,13 @@
                         <span class="toggle-slider"></span>
                     </label>
                 </div>
+                <div class="bg-control-row">
+                    <span>Акцент из фона</span>
+                    <label class="toggle" style="margin-left:auto">
+                        <input type="checkbox" id="bgAccentToggle">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
             </div>
         </div>
         </section>
@@ -652,75 +659,89 @@
 <div class="page" id="page-profile">
     <main class="profile-content">
         <h1 class="page-title">Профиль</h1>
-        <div class="profile-hero glass">
-            <div class="profile-avatar-large">А</div>
-            <h1 class="profile-name">Александр Петров</h1>
-            <div class="profile-username">@alex_music · На платформе с марта 2023</div>
-            <div class="profile-badges">
-                <span class="badge premium">⭐ Premium</span>
-                <span class="badge">🎵 Меломан</span>
-                <span class="badge">🌙 Ночная сова</span>
-            </div>
-            <div class="profile-stats-row">
-                <div class="profile-stat"><div class="profile-stat-value">1,247</div><div class="profile-stat-label">Треков</div></div>
-                <div class="profile-stat"><div class="profile-stat-value">38</div><div class="profile-stat-label">Плейлистов</div></div>
-                <div class="profile-stat"><div class="profile-stat-value">156</div><div class="profile-stat-label">Артистов</div></div>
-                <div class="profile-stat"><div class="profile-stat-value">89</div><div class="profile-stat-label">Друзей</div></div>
-            </div>
+
+<div class="profile-hero glass" id="profileHero">
+    <div class="profile-hero-cover" id="profileHeroCover"></div>
+
+<div class="profile-avatar-large" id="profileAvatar">
+    <span class="profile-avatar-letter" id="profileAvatarLetter">?</span>
+    <img class="profile-avatar-image" id="profileAvatarImage" alt="" hidden>
+</div>
+
+    <h1 class="profile-name" id="profileName">—</h1>
+    <div class="profile-username" id="profileUsername">—</div>
+    <div class="profile-bio" id="profileBio" hidden></div>
+    <div class="profile-badges" id="profileBadges"></div>
+
+    <div class="profile-stats-row">
+        <div class="profile-stat">
+            <div class="profile-stat-value" id="profileStatTracks">0</div>
+            <div class="profile-stat-label">Треков</div>
         </div>
+        <div class="profile-stat">
+            <div class="profile-stat-value" id="profileStatArtists">0</div>
+            <div class="profile-stat-label">Артистов</div>
+        </div>
+        <div class="profile-stat">
+            <div class="profile-stat-value" id="profileStatPlaylists">0</div>
+            <div class="profile-stat-label">Плейлистов</div>
+        </div>
+        <div class="profile-stat">
+            <div class="profile-stat-value" id="profileStatHours">0ч</div>
+            <div class="profile-stat-label">Прослушано</div>
+        </div>
+    </div>
+</div>
+
         <div class="stats-grid">
-            <div class="stat-card glass"><div class="stat-icon">🎧</div><div class="stat-value">847ч</div><div class="stat-label">Прослушано</div></div>
-            <div class="stat-card glass"><div class="stat-icon">❤️</div><div class="stat-value">342</div><div class="stat-label">Лайков</div></div>
-            <div class="stat-card glass"><div class="stat-icon">🔥</div><div class="stat-value">12</div><div class="stat-label">Дней подряд</div></div>
-            <div class="stat-card glass"><div class="stat-icon">🏆</div><div class="stat-value">7</div><div class="stat-label">Достижений</div></div>
+            <div class="stat-card glass">
+                <div class="stat-icon">🎵</div>
+                <div class="stat-value" id="profileCardTracks">0</div>
+                <div class="stat-label">Треков в базе</div>
+            </div>
+            <div class="stat-card glass">
+                <div class="stat-icon">▶️</div>
+                <div class="stat-value" id="profileCardPlays">0</div>
+                <div class="stat-label">Всего запусков</div>
+            </div>
+            <div class="stat-card glass">
+                <div class="stat-icon">🔥</div>
+                <div class="stat-value" id="profileCardStreak">0</div>
+                <div class="stat-label">Дней активно</div>
+            </div>
+            <div class="stat-card glass">
+                <div class="stat-icon">🏆</div>
+                <div class="stat-value" id="profileCardAchievements">0</div>
+                <div class="stat-label">Достижений</div>
+            </div>
         </div>
+
         <div class="profile-section glass">
             <h2 class="profile-section-title"><span>🏆</span>Достижения</h2>
-            <div class="achievements-grid">
-                <div class="achievement"><div class="achievement-icon">🎵</div><div class="achievement-name">Меломан</div><div class="achievement-desc">1000+ треков</div></div>
-                <div class="achievement"><div class="achievement-icon">🌙</div><div class="achievement-name">Ночная сова</div><div class="achievement-desc">Слушал после 2:00</div></div>
-                <div class="achievement"><div class="achievement-icon">🔥</div><div class="achievement-name">На волне</div><div class="achievement-desc">7 дней подряд</div></div>
-                <div class="achievement"><div class="achievement-icon">🔍</div><div class="achievement-name">Исследователь</div><div class="achievement-desc">50 жанров</div></div>
-                <div class="achievement"><div class="achievement-icon">💎</div><div class="achievement-name">Коллекционер</div><div class="achievement-desc">30 плейлистов</div></div>
-                <div class="achievement locked"><div class="achievement-icon">👑</div><div class="achievement-name">Легенда</div><div class="achievement-desc">5000 треков</div></div>
-                <div class="achievement locked"><div class="achievement-icon">🌍</div><div class="achievement-name">Глобалист</div><div class="achievement-desc">100 артистов</div></div>
-            </div>
+            <div class="achievements-grid" id="profileAchievements"></div>
         </div>
+
         <div class="profile-section glass">
-            <h2 class="profile-section-title"><span>🎼</span>Любимые жанры</h2>
-            <div class="genres-cloud">
-                <span class="genre-tag popular">Electronic</span>
-                <span class="genre-tag popular">Synthwave</span>
-                <span class="genre-tag popular">Ambient</span>
-                <span class="genre-tag">Lo-Fi</span>
-                <span class="genre-tag">Jazz</span>
-                <span class="genre-tag">Indie</span>
-                <span class="genre-tag">Hip-Hop</span>
-                <span class="genre-tag">R&B</span>
-                <span class="genre-tag">Classical</span>
-                <span class="genre-tag">Rock</span>
-                <span class="genre-tag">Pop</span>
-                <span class="genre-tag">Folk</span>
-            </div>
+            <h2 class="profile-section-title"><span>🎤</span>Топ артистов</h2>
+            <div class="profile-top-artists" id="profileTopArtists"></div>
         </div>
+
+        <div class="profile-section glass">
+            <h2 class="profile-section-title"><span>🌍</span>Любимые регионы</h2>
+            <div class="genres-cloud" id="profileRegions"></div>
+        </div>
+
         <div class="profile-section glass">
             <h2 class="profile-section-title"><span>📊</span>Последняя активность</h2>
-            <div class="activity-list">
-                <div class="activity-item"><div class="activity-icon">🎵</div><div class="activity-info"><div class="activity-title">Прослушал "Midnight Dreams"</div><div class="activity-subtitle">Luna Wave · 3:45</div></div><div class="activity-time">5 мин назад</div></div>
-                <div class="activity-item"><div class="activity-icon">❤️</div><div class="activity-info"><div class="activity-title">Добавил в избранное</div><div class="activity-subtitle">"Ocean Breeze" — Coastal Vibes</div></div><div class="activity-time">12 мин назад</div></div>
-                <div class="activity-item"><div class="activity-icon">📋</div><div class="activity-info"><div class="activity-title">Создал плейлист</div><div class="activity-subtitle">"Вечерний чилл" · 24 трека</div></div><div class="activity-time">1 час назад</div></div>
-                <div class="activity-item"><div class="activity-icon">👥</div><div class="activity-info"><div class="activity-title">Подписался на артиста</div><div class="activity-subtitle">Neon Pulse</div></div><div class="activity-time">3 часа назад</div></div>
-                <div class="activity-item"><div class="activity-icon">🏆</div><div class="activity-info"><div class="activity-title">Получил достижение</div><div class="activity-subtitle">"На волне" — 7 дней подряд</div></div><div class="activity-time">Вчера</div></div>
-            </div>
+            <div class="activity-list" id="profileActivity"></div>
         </div>
+
         <div class="profile-section glass">
             <h2 class="profile-section-title"><span>⚙️</span>Аккаунт</h2>
             <div class="account-list">
-                <div class="account-item"><div class="account-item-left"><div class="account-item-icon">👤</div><span class="account-item-label">Редактировать профиль</span></div><span class="account-item-arrow">›</span></div>
+                <div class="account-item" data-action="edit-profile"><div class="account-item-left"><div class="account-item-icon">👤</div><span class="account-item-label">Редактировать профиль</span></div><span class="account-item-arrow">›</span></div>
                 <div class="account-item"><div class="account-item-left"><div class="account-item-icon">🔒</div><span class="account-item-label">Безопасность и пароль</span></div><span class="account-item-arrow">›</span></div>
-                <div class="account-item"><div class="account-item-left"><div class="account-item-icon">⭐</div><span class="account-item-label">Подписка Premium</span></div><span class="account-item-arrow">›</span></div>
                 <div class="account-item"><div class="account-item-left"><div class="account-item-icon">🔔</div><span class="account-item-label">Уведомления</span></div><span class="account-item-arrow">›</span></div>
-                <div class="account-item"><div class="account-item-left"><div class="account-item-icon">🌐</div><span class="account-item-label">Язык и регион</span></div><span class="account-item-arrow">›</span></div>
                 <div class="account-item" data-action="support"><div class="account-item-left"><div class="account-item-icon">❓</div><span class="account-item-label">Помощь и поддержка</span></div><span class="account-item-arrow">›</span></div>
             </div>
             <button class="logout-btn">Выйти из аккаунта</button>
@@ -884,6 +905,72 @@
             </div>
             <div class="artist-tracks" id="regionTracks"></div>
         </div>
+    </div>
+</div>
+
+<div class="modal edit-profile-modal" id="editProfileModal">
+    <div class="edit-profile-inner">
+        <div class="modal-header">
+            <h2 class="modal-title">Редактировать профиль</h2>
+            <button class="modal-close" id="editProfileClose">×</button>
+        </div>
+
+        <form class="edit-profile-form" id="editProfileForm" novalidate>
+
+            <div class="edit-profile-cover" id="editProfileCover">
+                <div class="edit-profile-cover-overlay">
+                    <button type="button" class="edit-profile-cover-btn" id="editCoverBtn">
+                        <svg viewBox="0 0 24 24"><path d="M9 3 7.17 5H4a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-3.17L15 3H9zm3 15a5 5 0 1 1 0-10 5 5 0 0 1 0 10z"/></svg>
+                        <span>Обложка</span>
+                    </button>
+                    <button type="button" class="edit-profile-cover-btn ghost" id="editCoverRemoveBtn" hidden>
+                        <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+                        <span>Убрать</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="edit-profile-avatar-row">
+                <div class="edit-profile-avatar" id="editProfileAvatar">
+                    <span class="edit-profile-avatar-placeholder">?</span>
+                </div>
+                <div class="edit-profile-avatar-actions">
+                    <button type="button" class="artist-btn primary" id="editAvatarUploadBtn">
+                        <svg viewBox="0 0 24 24"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg>
+                        <span>Загрузить аватар</span>
+                    </button>
+                    <button type="button" class="artist-btn" id="editAvatarRemoveBtn">
+                        <span>Убрать</span>
+                    </button>
+                    <div class="edit-profile-avatar-hint">PNG, JPG или WEBP. До 5 МБ.</div>
+                </div>
+            </div>
+
+            <div class="edit-profile-field">
+                <label class="edit-profile-label" for="editProfileName">Имя</label>
+                <input type="text" class="form-input" id="editProfileName" maxlength="30" placeholder="Как тебя зовут">
+            </div>
+
+            <div class="edit-profile-field">
+                <label class="edit-profile-label" for="editProfileUsername">Username</label>
+                <input type="text" class="form-input" id="editProfileUsername" maxlength="20" placeholder="username">
+                <div class="edit-profile-help">Только латиница, цифры и _</div>
+            </div>
+
+            <div class="edit-profile-field">
+                <label class="edit-profile-label" for="editProfileBio">О себе</label>
+                <textarea class="form-input edit-profile-bio" id="editProfileBio" maxlength="120" placeholder="Пара слов о тебе..."></textarea>
+                <div class="edit-profile-help edit-profile-charcount"><span id="editBioCount">0</span> / 120</div>
+            </div>
+
+            <div class="edit-profile-actions">
+                <button type="button" class="artist-btn" id="editProfileCancelBtn">Отмена</button>
+                <button type="submit" class="artist-btn primary" id="editProfileSaveBtn">Сохранить</button>
+            </div>
+
+            <input type="file" id="editAvatarFile" accept="image/*" hidden>
+            <input type="file" id="editCoverFile" accept="image/*" hidden>
+        </form>
     </div>
 </div>
 
