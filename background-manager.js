@@ -26,11 +26,15 @@ class BackgroundManager {
         const saved = JSON.parse(localStorage.getItem('bgSettings') || '{}');
         this.settings.dim = saved.dim ?? 40;
         this.settings.parallax = saved.parallax ?? false;
+        this.settings.accentFromBg = saved.accentFromBg ?? false;
         this.activeId = localStorage.getItem('bgActiveId') || null;
 
         document.getElementById('bgDimSlider').value = this.settings.dim;
         document.getElementById('bgDimValue').textContent = this.settings.dim + '%';
         document.getElementById('bgParallaxToggle').checked = this.settings.parallax;
+        
+        const bgAccentEl = document.getElementById('bgAccentToggle');
+        if (bgAccentEl) bgAccentEl.checked = this.settings.accentFromBg;
 
         this.applyDim();
         this.bindControls();
@@ -99,8 +103,10 @@ class BackgroundManager {
             showNotification('Только изображения', true);
             return;
         }
-        if (file.size > 15 * 1024 * 1024) {
-            showNotification('Файл больше 15 МБ', true);
+        const isGifInput = file.type === 'image/gif';
+        const maxSize = isGifInput ? 25 * 1024 * 1024 : 15 * 1024 * 1024;
+        if (file.size > maxSize) {
+            showNotification(`Файл больше ${isGifInput ? 25 : 15} МБ`, true);
             return;
         }
         if (!this.db) {
@@ -109,8 +115,11 @@ class BackgroundManager {
         }
 
         try {
-            showNotification('Обработка изображения...');
-            const thumb = await this.createThumbnail(file, 200);
+            const isGif = file.type === 'image/gif';
+
+            showNotification(isGif ? 'Загрузка GIF...' : 'Обработка изображения...');
+
+            const thumb = isGif ? null : await this.createThumbnail(file, 200);
             const name = file.name.replace(/\.[^/.]+$/, '').slice(0, 40) || 'Фон';
             const id = 'bg_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
 
@@ -119,6 +128,7 @@ class BackgroundManager {
                 name,
                 blob: file,
                 thumbnail: thumb,
+                isGif,
                 createdAt: Date.now()
             });
 
@@ -160,6 +170,7 @@ class BackgroundManager {
 
     async applyActive() {
         if (!this.activeId || !this.db) {
+            document.body.classList.remove('bg-is-gif');
             this.hide();
             return;
         }
@@ -168,6 +179,7 @@ class BackgroundManager {
             if (!record) {
                 this.activeId = null;
                 localStorage.removeItem('bgActiveId');
+                document.body.classList.remove('bg-is-gif');
                 this.hide();
                 return;
             }
@@ -179,10 +191,44 @@ class BackgroundManager {
             this.imgEl.onload = () => {
                 this.el.classList.add('active');
             };
+
+            document.body.classList.toggle('bg-is-gif', !!record.isGif);
+
+            if (this.settings.accentFromBg) {
+                this._applyBgAccent(url);
+            } else {
+                this._restoreUserAccent();
+            }
         } catch (e) {
             console.warn(e);
+            document.body.classList.remove('bg-is-gif');
             this.hide();
         }
+    }
+
+    async _applyBgAccent(url) {
+        if (typeof extractCoverPalette !== 'function') return;
+        try {
+            const palette = await extractCoverPalette(url);
+            if (!palette) return;
+            const root = document.documentElement;
+            root.style.setProperty('--y', palette.hex);
+            root.style.setProperty('--y-deep', palette.hexDeep);
+            root.style.setProperty('--y-glow', `rgba(${palette.hexRgb.join(',')}, 0.15)`);
+            root.style.setProperty('--y-rgb', palette.hexRgb.join(','));
+            if (typeof currentAccentRGB !== 'undefined') {
+                currentAccentRGB = palette.hexRgb;
+            }
+            document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+        } catch (e) {
+            console.warn('bg accent failed:', e);
+        }
+    }
+
+    _restoreUserAccent() {
+        if (typeof applyColorPreset !== 'function') return;
+        const key = localStorage.getItem('colorPreset') || 'yellow';
+        applyColorPreset(key);
     }
 
     hide() {
@@ -198,6 +244,8 @@ class BackgroundManager {
             await this.applyActive();
             this.controls.classList.remove('hidden');
         } else {
+            document.body.classList.remove('bg-is-gif');
+            this._restoreUserAccent();
             this.hide();
             this.controls.classList.add('hidden');
         }
@@ -226,6 +274,16 @@ class BackgroundManager {
             this.saveSettings();
             if (!this.settings.parallax) {
                 this.imgEl.style.transform = 'scale(1.08)';
+            }
+        });
+
+        document.getElementById('bgAccentToggle')?.addEventListener('change', (e) => {
+            this.settings.accentFromBg = e.target.checked;
+            this.saveSettings();
+            if (this.settings.accentFromBg && this._currentUrl) {
+                this._applyBgAccent(this._currentUrl);
+            } else {
+                this._restoreUserAccent();
             }
         });
     }
@@ -268,6 +326,10 @@ class BackgroundManager {
                 const records = await this.dbGetAll();
                 records.sort((a, b) => b.createdAt - a.createdAt);
 
+                this._tileUrls = this._tileUrls || [];
+                this._tileUrls.forEach(u => URL.revokeObjectURL(u));
+                this._tileUrls = [];
+
                 for (const rec of records) {
                     const tile = document.createElement('div');
                     tile.className = 'bg-tile';
@@ -275,7 +337,11 @@ class BackgroundManager {
                     tile.title = rec.name;
 
                     const img = document.createElement('img');
-                    if (rec.thumbnail) {
+                    if (rec.isGif) {
+                        const gifUrl = URL.createObjectURL(rec.blob);
+                        this._tileUrls.push(gifUrl);
+                        img.src = gifUrl;
+                    } else if (rec.thumbnail) {
                         const thumbUrl = URL.createObjectURL(rec.thumbnail);
                         img.src = thumbUrl;
                         img.onload = () => URL.revokeObjectURL(thumbUrl);

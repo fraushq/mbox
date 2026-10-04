@@ -1,0 +1,50 @@
+{
+  "name": "mbox",
+  "version": "0.51.0",
+  "description": "mbox — твой плеер в браузере",
+  "main": "main.js",
+  "author": "Fraush",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "build": "electron-builder",
+    "build:win": "electron-builder --win",
+    "build:mac": "electron-builder --mac",
+    "build:linux": "electron-builder --linux"
+  },
+  "devDependencies": {
+    "electron": "latest",
+    "electron-builder": "latest"
+  },
+  "build": {
+    "appId": "app.mbox",
+    "productName": "mbox",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "index.html",
+      "style.css",
+      "*.js",
+      "*.png",
+      "*.svg",
+      "!node_modules",
+      "!dist-electron"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "mbox192.png"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "mbox192.png"
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "mbox192.png"
+    }
+  }
+}
